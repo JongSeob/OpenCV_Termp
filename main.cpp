@@ -36,6 +36,13 @@ enum {VP_NONE, VP_HIST_EQUAL, VP_HIST_STRETCH, VP_GAMMA, VP_UNSHARP, VP_ACHROMAT
 
 void Menu();
 
+void onHistStretchMaxSlide(int pos, void * userdata = 0); /* pos means trackbar position. It means threshold value here. */;
+void onHistStretchMinSlide(int pos, void * userdata = 0); /* pos means trackbar position. It means threshold value here. */;
+void onGammaChangeSlide(int pos, void * userdata = 0); /* pos means trackbar position. It means threshold value here. */;
+void onUnsharpSlide(int pos, void * userdata = 0); /* pos means trackbar position. It means threshold value here. */;
+
+void CreateWindowAndTrackbar(Mat trackbar_background, const char windowName[], const char trackbarName[], int * default, int max, void (*trackbarCallBack)(int pos, void * userdata) );
+
 int main(void) 
 {
 	VideoCapture cap;
@@ -43,7 +50,7 @@ int main(void)
 	global_cap = &cap;
 
 	//////////////////////////////////////////////////////////////////////////
-	// Flags
+	// 1. Flags
 	//////////////////////////////////////////////////////////////////////////
 
 	int video_proc = VP_NONE;
@@ -52,8 +59,11 @@ int main(void)
 
 	int speed = 1;
 
+	//////////////////////////////////////////////////////////////////////////
+	// 2. File Path
+	//////////////////////////////////////////////////////////////////////////
 
-	// 1. define InputFilePath, OutputFilePath
+	// define InputFilePath, OutputFilePath
 
 	strcat_s(InputFilePath,  InputFileName);
 
@@ -61,7 +71,11 @@ int main(void)
 		strcat_s(OutputFilePath[i], OutputFileName[i]);	
 
 
-	// 2. Create Window and Trackbar
+	//////////////////////////////////////////////////////////////////////////
+	// 3. Window, Trackbar, Mouse
+	//////////////////////////////////////////////////////////////////////////
+
+	// Create Window and Trackbar
 
 	int	videoTotalLength = GetVideoLengthInMSEC(InputFilePath);	// Maximum slider value
 	int	slider_position = 0;							// Constantly updated slider value
@@ -69,11 +83,16 @@ int main(void)
 	namedWindow("original", 1);
 	createTrackbar("Time(msec)", "original", &slider_position, videoTotalLength, onTrackbarSlide);
 
-	// 3. Set the mouse event callback function
+	// Set the mouse event callback function
 
 	setMouseCallback("original", mouse_callback);
 
-	// 4. Open the VideoFile
+
+	//////////////////////////////////////////////////////////////////////////
+	// 4. Open The File and Define Values
+	//////////////////////////////////////////////////////////////////////////
+
+	// Open the VideoFile
 
 	OpenVideoFile(cap, InputFilePath);
 
@@ -86,7 +105,7 @@ int main(void)
 
 	double fps = cap.get(CV_CAP_PROP_FPS);
 
-	// 5. ready to write a videofile
+	// ready to write a videofile
 
 	VideoWriter wrt;     // 관심구간을 제외한 비디오를 저장할 객체.
 
@@ -94,6 +113,34 @@ int main(void)
 		
 	int runningTime; // 현재 프레임이 동영상 실행 후 몇 msec후의 프레임인지를 나타낸다.
 
+	//////////////////////////////////////////////////////////////////////////
+	// 5. Variables for ImgProc's Trackbars
+	//////////////////////////////////////////////////////////////////////////
+	
+	// 트랙바가 생성될 윈도우의 Mat 객체
+	Mat trackbar_background(50,600, 0);
+
+	// Histogram Stretching Min, Max
+	const char histStretchWindowName[50] = {"Histogram Stretch Min, Max"};
+	const char histStretchTrackbarName[2][50] = {"Min", "Max"};
+	int histStretch_default[2] = {0, 10};
+	int histStretch_max = 30;
+
+	// Gamma Change Value 
+	const char gammaWindowName[50] = "Gamma";
+	const char gammaTrackbarName[50] = "0.1 units ";
+	int gamma_default = 0;
+	int gamma_max = 30;
+	int gamma = gamma_default;
+
+
+	// Unsharp Masking Sigma
+	const char unsharpWindowName[50] = "Unsharp Masking Sigma";
+	const char unsharpTrackbarName[50] = "Sigma ";
+	int sigma_default = 0;
+	int sigma_max = 10;
+	int sigma = sigma_default;
+				
 	Menu();
 
 	while(1)
@@ -105,7 +152,7 @@ int main(void)
 			if(frame.empty()) 
 			{
 				/////////////////////////////////////////////////////////////////////////////////////
-				// 동영상이 종료되면 같은 동영상을 재실행. 프로그램이 종료되지 않게 하려고 집어넣음.
+				// 동영상이 종료되면 같은 동영상을 재실행. 프로그램이 종료되지 않게 하려고 집어넣었음.
 				/////////////////////////////////////////////////////////////////////////////////////
 				
 				if(video_save_flag == true)
@@ -117,9 +164,7 @@ int main(void)
 				RestartVideo(cap, InputFilePath);
 
 				cap.read(frame);
-
-				cout << endl;
-
+				
 				system("cls");
 
 				Menu();
@@ -145,8 +190,7 @@ int main(void)
 			slider_position = runningTime;
 
 			createTrackbar("Time(msec)", "original", &slider_position, videoTotalLength, onTrackbarSlide);
-			//setTrackbarPos("Time(msec)", "original", runningTime); // 영상이 진행하면서 트랙바도 같이 움직임. 
-			// 실행하면 영상 속도가 너무 느려져서 제외함.			
+			//setTrackbarPos("Time(msec)", "original", runningTime); // 이 함수를 이용하면 영상이 버벅거림.
 
 			imshow("original", frame);
 		}
@@ -158,10 +202,19 @@ int main(void)
 		if(key == 0x1b)
 			break;
 
+		// 중복선택 된 경우 처음으로 되돌아감
 		if( (key - '0') == video_proc )
 			continue;
+		// 다른 이미지 처리를 실행하게 될 경우 처리할 내용
 		else if( ((key - '0') >= VP_NONE) && ((key - '0') <= VP_ACHROMATIC)   )
 		{
+			if(video_proc == VP_HIST_STRETCH)
+				destroyWindow(histStretchWindowName);
+			else if(video_proc == VP_UNSHARP)
+				destroyWindow(unsharpWindowName);
+			else if(video_proc == VP_GAMMA)
+				destroyWindow(gammaWindowName);
+
 			wrt.release();
 			cout << "VideoWrite finished." << endl;
 			video_save_flag = false;
@@ -178,12 +231,16 @@ int main(void)
 					break;		
 		case '2'  : video_proc = VP_HIST_STRETCH;	// 히스토그램 스트레칭
 					cout << "Histogram Stretching " << endl;
+					CreateWindowAndTrackbar(trackbar_background, histStretchWindowName, histStretchTrackbarName[0], &histStretch_default[0], histStretch_max, onHistStretchMinSlide);
+					CreateWindowAndTrackbar(trackbar_background, histStretchWindowName, histStretchTrackbarName[1], &histStretch_default[1], histStretch_max, onHistStretchMaxSlide);
 					break;		
 		case '3'  : video_proc = VP_GAMMA;			// 감마 변환
 					cout << "Change Gamma " << endl;
+					CreateWindowAndTrackbar(trackbar_background, gammaWindowName, gammaTrackbarName, &gamma_default, gamma_max, onGammaChangeSlide);
 					break;		
 		case '4'  : video_proc = VP_UNSHARP;		// Unsharp Masking
 					cout << "Unsharp Masking" << endl;
+					CreateWindowAndTrackbar(trackbar_background, unsharpWindowName, unsharpTrackbarName, &sigma_default, sigma_max, onUnsharpSlide);
 					break;		
 		case '5'  : video_proc = VP_ACHROMATIC;		// 특정 hue만 취하고 나머지는 무채색
 					cout << "Achromatic Color" << endl;
@@ -223,7 +280,34 @@ void Menu()
 	cout << "=================================================" << endl;
 }
 
+void onHistStretchMaxSlide( int pos, void * userdata /*= 0*/ )
+{
+	cout << "max = " << pos << endl;
+}
 
+void onHistStretchMinSlide( int pos, void * userdata /*= 0*/ )
+{
+	cout << "min = " << pos << endl;
+}
 
+void onGammaChangeSlide( int pos, void * userdata /*= 0*/ )
+{
+	cout << "gamma = " << pos / 10.0 << endl;
+}
+
+void onUnsharpSlide( int pos, void * userdata /*= 0*/ )
+{
+	cout << "sigma = " << pos << endl;
+
+	// 커널크기 자동 조절 //
+}
+
+void CreateWindowAndTrackbar( Mat trackbar_background, const char windowName[], const char trackbarName[], int * default, int max, 
+								void (*trackbarCallBack)(int pos, void * userdata) )
+{
+	namedWindow(windowName);
+	imshow(windowName, trackbar_background);
+	createTrackbar(trackbarName, windowName, default, max, trackbarCallBack);
+}
 
 
