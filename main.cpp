@@ -158,14 +158,36 @@ int main(void)
 		if(key == 0x1b)
 			break;
 
+		if( (key - '0') == video_proc )
+			continue;
+		else if( ((key - '0') >= VP_NONE) && ((key - '0') <= VP_ACHROMATIC)   )
+		{
+			wrt.release();
+			cout << "VideoWrite finished." << endl;
+			video_save_flag = false;
+		}
+			
+
 		switch(key)
 		{
-		case '0'  : video_proc = VP_NONE;			break;		// 원 영상만 출력
-		case '1'  : video_proc = VP_HIST_EQUAL;		break;		// 히스토그램 평활화
-		case '2'  : video_proc = VP_HIST_STRETCH;	break;		// 히스토그램 스트레칭
-		case '3'  : video_proc = VP_GAMMA;			break;		// 감마 변환
-		case '4'  : video_proc = VP_UNSHARP;		break;		// Unsharp Masking
-		case '5'  : video_proc = VP_ACHROMATIC;		break;		// 특정 hue만 취하고 나머지는 무채색
+		case '0'  : video_proc = VP_NONE;			// 원본 영상 출력
+					cout << "No Image Processing" << endl;
+					break;		
+		case '1'  : video_proc = VP_HIST_EQUAL;		// 히스토그램 평활화
+					cout << "Histogram Equalization" << endl;
+					break;		
+		case '2'  : video_proc = VP_HIST_STRETCH;	// 히스토그램 스트레칭
+					cout << "Histogram Stretching " << endl;
+					break;		
+		case '3'  : video_proc = VP_GAMMA;			// 감마 변환
+					cout << "Change Gamma " << endl;
+					break;		
+		case '4'  : video_proc = VP_UNSHARP;		// Unsharp Masking
+					cout << "Unsharp Masking" << endl;
+					break;		
+		case '5'  : video_proc = VP_ACHROMATIC;		// 특정 hue만 취하고 나머지는 무채색
+					cout << "Achromatic Color" << endl;
+					break;		
 		case ' '  : video_play = (video_play == true) ? false : true; break;
 		case 's'  : if(video_save_flag == false)
 					{
