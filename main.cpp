@@ -34,6 +34,8 @@ VideoCapture * global_cap;
 
 enum {VP_NONE, VP_HIST_EQUAL, VP_HIST_STRETCH, VP_GAMMA, VP_UNSHARP, VP_ACHROMATIC};
 
+void Menu();
+
 int main(void) 
 {
 	VideoCapture cap;
@@ -65,11 +67,11 @@ int main(void)
 	int	slider_position = 0;							// Constantly updated slider value
 
 	namedWindow("original", 1);
-	createTrackbar("Time(msec)", "original", &slider_position, videoTotalLength, onTrackbarSlide, &cap);
+	createTrackbar("Time(msec)", "original", &slider_position, videoTotalLength, onTrackbarSlide);
 
 	// 3. Set the mouse event callback function
 
-	setMouseCallback("original", mouse_callback, (void *)&cap);
+	setMouseCallback("original", mouse_callback);
 
 	// 4. Open the VideoFile
 
@@ -89,13 +91,10 @@ int main(void)
 	VideoWriter wrt;     // 관심구간을 제외한 비디오를 저장할 객체.
 
 #define	CODEC CV_FOURCC('D', 'I', 'V', 'X')
-
-	// 6. Variable for gaussian blurring
-
-	int ksize = 7;
-	int sigma = 3.0;	
-
+		
 	int runningTime; // 현재 프레임이 동영상 실행 후 몇 msec후의 프레임인지를 나타낸다.
+
+	Menu();
 
 	while(1)
 	{	
@@ -108,16 +107,38 @@ int main(void)
 				/////////////////////////////////////////////////////////////////////////////////////
 				// 동영상이 종료되면 같은 동영상을 재실행. 프로그램이 종료되지 않게 하려고 집어넣음.
 				/////////////////////////////////////////////////////////////////////////////////////
-
-				cout << endl << "No image found!" << endl;
-				cout << "and restart current video" << endl;
+				
+				if(video_save_flag == true)
+				{
+					wrt.release();
+					video_save_flag = false;
+				}
 
 				RestartVideo(cap, InputFilePath);
 
 				cap.read(frame);
+
+				cout << endl;
+
+				system("cls");
+
+				Menu();
 				
 				continue;			
-			}			
+			}
+
+			switch (video_proc)
+			{
+			case VP_HIST_EQUAL   : break;
+			case VP_HIST_STRETCH : break;
+			case VP_GAMMA		 : break;
+			case VP_UNSHARP		 : break;
+			case VP_ACHROMATIC   : break;
+			default				 : break;
+			}
+			
+			if(video_save_flag == true)
+				wrt.write(frame);
 
 			runningTime = cap.get(CV_CAP_PROP_POS_MSEC);
 
@@ -125,14 +146,11 @@ int main(void)
 
 			createTrackbar("Time(msec)", "original", &slider_position, videoTotalLength, onTrackbarSlide);
 			//setTrackbarPos("Time(msec)", "original", runningTime); // 영상이 진행하면서 트랙바도 같이 움직임. 
-			// 실행하면 영상 속도가 너무 느려져서 제외함.
+			// 실행하면 영상 속도가 너무 느려져서 제외함.			
 
 			imshow("original", frame);
 		}
-
-		if(video_save_flag == true)
-			wrt.write(frame);
-		
+				
 		int key;
 
 		key = waitKey(1000.0/(fps*speed));	// 동영상의 fps와 비슷한 속도로 영상을 출력하기 위해 읽는 속도를 조절.
@@ -167,6 +185,20 @@ int main(void)
 
 
 	return 0;
+}
+
+void Menu()
+{
+	cout << "=================================================" << endl;
+	cout << "==    '0'    : No Image Processing             ==" << endl;
+	cout << "==    '1'    : HistogramEqualization           ==" << endl;
+	cout << "==    '2'    : HistogramStretching             ==" << endl;
+	cout << "==    '3'    : Change Gamma Value              ==" << endl;
+	cout << "==    '4'    : UnsharpMasking                  ==" << endl;
+	cout << "==    '5'    : Achromatic Color                ==" << endl;
+	cout << "==    's'    : video write start / stop        ==" << endl;
+	cout << "== SPACE_BAR : video pause / resume            ==" << endl;
+	cout << "=================================================" << endl;
 }
 
 
