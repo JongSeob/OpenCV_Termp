@@ -89,7 +89,7 @@ int main(void)
 
 
 	//////////////////////////////////////////////////////////////////////////
-	// 4. Open The File and Define Values
+	// 4. Open The File and Define Video Information Values
 	//////////////////////////////////////////////////////////////////////////
 
 	// Open the VideoFile
@@ -105,13 +105,16 @@ int main(void)
 
 	double fps = cap.get(CV_CAP_PROP_FPS);
 
-	// ready to write a videofile
+	int runningTime; // 현재 프레임이 동영상 실행 후 몇 msec후의 프레임인지를 나타낸다.
 
+	//////////////////////////////////////////////////////////////////////////
+	// 5. Ready to write a videofile
+	//////////////////////////////////////////////////////////////////////////
+	
 	VideoWriter wrt;     // 관심구간을 제외한 비디오를 저장할 객체.
 
 #define	CODEC CV_FOURCC('D', 'I', 'V', 'X')
-		
-	int runningTime; // 현재 프레임이 동영상 실행 후 몇 msec후의 프레임인지를 나타낸다.
+
 
 	//////////////////////////////////////////////////////////////////////////
 	// 5. Variables for ImgProc's Trackbars
@@ -208,6 +211,7 @@ int main(void)
 		// 다른 이미지 처리를 실행하게 될 경우 처리할 내용
 		else if( ((key - '0') >= VP_NONE) && ((key - '0') <= VP_ACHROMATIC)   )
 		{
+			// 다른 트랙바를 실행해야 하거나, 트랙바를 지워야하는 경우 현재 트랙바를 삭제
 			if(video_proc == VP_HIST_STRETCH)
 				destroyWindow(histStretchWindowName);
 			else if(video_proc == VP_UNSHARP)
@@ -309,5 +313,3 @@ void CreateWindowAndTrackbar( Mat trackbar_background, const char windowName[], 
 	imshow(windowName, trackbar_background);
 	createTrackbar(trackbarName, windowName, default, max, trackbarCallBack);
 }
-
-
