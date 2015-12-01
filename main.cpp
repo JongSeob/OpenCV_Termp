@@ -45,7 +45,7 @@ void onUnsharpSlide(int pos, void * userdata = 0); /* pos means trackbar positio
 void CreateWindowAndTrackbar(Mat trackbar_background, const char windowName[], const char trackbarName[], int * default, int max, void (*trackbarCallBack)(int pos, void * userdata) );
 
 Mat GetHistEqualOnColorImg(const Mat &src);
-Mat GetUnsharpImg(const Mat &src);
+Mat GetUnsharpImg(Mat &src);
 
 int main(void) 
 {
@@ -185,7 +185,8 @@ int main(void)
 								   break;
 			case VP_HIST_STRETCH : break;
 			case VP_GAMMA		 : break;
-			case VP_UNSHARP		 : break;
+			case VP_UNSHARP		 : frame = GetUnsharpImg(frame);
+								   break;
 			case VP_ACHROMATIC   : break;
 			default				 :  
 								   break;
@@ -356,7 +357,7 @@ cv::Mat GetHistEqualOnColorImg( const Mat &src )
 	return dst;
 }
 
-cv::Mat GetUnsharpImg( const Mat &src )
+cv::Mat GetUnsharpImg( Mat &src )
 {
 	// Initialize common variables and objects over the test method sections.
 	int ksize = 31;					// Kernel Size. must be odd positive.  Big kernel size causes no problem for simulation. It affects on time during real time implementation.
@@ -365,20 +366,22 @@ cv::Mat GetUnsharpImg( const Mat &src )
 
 	cv::Mat Blur, dst, dstPositive, dstNegative;
 	cv::GaussianBlur(src, Blur, cv::Size(ksize, ksize), sigma);		// kernel size = ksize
-	cv::namedWindow("GaussianBlur");		cv::imshow("GaussianBlur", Blur); 
+	//cv::namedWindow("GaussianBlur");		cv::imshow("GaussianBlur", Blur); 
 
 	src.convertTo(src,CV_16S);
 	Blur.convertTo(Blur, CV_16S);
 
-	//1) Show high frequence components, Unsharp mask
+	#if 0
+//1) Show high frequence components, Unsharp mask
 	// Unsharp mask = original image - Bluurred image
 	// The unsharp mask is identified later as a negative 2nd derivative of the origonal image.
 	dst = scale * (src-Blur);						// Unsharp mask
 	dst.convertTo(dstPositive,CV_8U,1);
 	dst.convertTo(dstNegative,CV_8U,-1);			// dstNegative contains Negative part of dst.
 
-	//cv::namedWindow("Positive Part of Unsharp Mask(original-Blur)"); 	cv::imshow("Positive Part of Unsharp Mask(original-Blur)",dstPositive);
-	//cv::namedWindow("Negative Part of Unsharp Mask(original-Blur)"); 	cv::imshow("Negative Part of Unsharp Mask(original-Blur)",dstNegative);
+	cv::namedWindow("Positive Part of Unsharp Mask(original-Blur)"); 	cv::imshow("Positive Part of Unsharp Mask(original-Blur)",dstPositive);
+	cv::namedWindow("Negative Part of Unsharp Mask(original-Blur)"); 	cv::imshow("Negative Part of Unsharp Mask(original-Blur)",dstNegative);
+#endif
 
 
 	// 2) The unsharp mask is (original-Blur). Add it to original image.
@@ -389,13 +392,16 @@ cv::Mat GetUnsharpImg( const Mat &src )
 	//cv::namedWindow("Positive: original+UnsharpMask(original-Blur)"); 	cv::imshow("Positive: original+UnsharpMask(original-Blur)",dstPositive);
 	//cv::namedWindow("Negative: original+UnsharpMask(original-Blur)"); 	cv::imshow("Negative: original+UnsharpMask(original-Blur)",dstNegative);
 
-	// 3) If we subtract the 2nd derivative from the original image, the output image is sharpened. 
+	#if 0
+// 3) If we subtract the 2nd derivative from the original image, the output image is sharpened. 
 	// Through trial and error, I found that the (Blur-original) is the 2nd derivative of the original image.
 	dst = src - scale * (Blur-src);
 	dst.convertTo(dstPositive,CV_8U,1);
 	dst.convertTo(dstNegative,CV_8U,-1);			// dstNegative contains Negative part of dst.
 
-	//cv::namedWindow("Positive: original-2ndDerivative(Blur-original)"); 	cv::imshow("Positive: original-2ndDerivative(Blur-original)",dstPositive);
-	//cv::namedWindow("Negative: original-2ndDerivative(Blur-original)"); 	cv::imshow("Negative: original-2ndDerivative(Blur-original)",dstNegative);
-	return dst;	
+	cv::namedWindow("Positive: original-2ndDerivative(Blur-original)"); 	cv::imshow("Positive: original-2ndDerivative(Blur-original)",dstPositive);
+	cv::namedWindow("Negative: original-2ndDerivative(Blur-original)"); 	cv::imshow("Negative: original-2ndDerivative(Blur-original)",dstNegative);
+#endif
+
+	return dstPositive;	
 }
