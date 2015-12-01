@@ -46,6 +46,7 @@ void CreateWindowAndTrackbar(Mat trackbar_background, const char windowName[], c
 
 Mat GetHistEqualOnColorImg(const Mat &src);
 Mat GetUnsharpImg(Mat &src);
+void GetHistStretch(Mat &src);
 
 int main(void) 
 {
@@ -183,7 +184,8 @@ int main(void)
 			{
 			case VP_HIST_EQUAL   : frame = GetHistEqualOnColorImg(frame);
 								   break;
-			case VP_HIST_STRETCH : break;
+			case VP_HIST_STRETCH : GetHistStretch(frame);
+								   break;
 			case VP_GAMMA		 : break;
 			case VP_UNSHARP		 : frame = GetUnsharpImg(frame);
 								   break;
@@ -404,4 +406,22 @@ cv::Mat GetUnsharpImg( Mat &src )
 #endif
 
 	return dstPositive;	
+}
+
+void GetHistStretch( Mat &src )
+{
+	// Make a table for Histogram streteching
+	int	min=30, max=180;
+	int		 i,j;
+	unsigned char LUT[256];
+	for ( i=0; i<min; i++)		LUT[i] = 0;
+	for ( i=max; i<=255; i++)	LUT[i] = 255;	
+	for ( i=min; i<max; i++)	{	LUT[i] = (unsigned char) ( (float)i * 255.0 / (float)(max-min) - (255.0 * min / (float(max-min) ) ) );}
+
+	for (j =0; j<src.rows; j++) 
+		for (i =0; i<src.cols; i++) {
+			src.at<cv::Vec3b>(j,i)[0] = LUT[ src.at<cv::Vec3b>(j,i)[0] ];	
+			src.at<cv::Vec3b>(j,i)[1] = LUT[ src.at<cv::Vec3b>(j,i)[1] ];	
+			src.at<cv::Vec3b>(j,i)[2] = LUT[ src.at<cv::Vec3b>(j,i)[2] ];	
+		}
 }
