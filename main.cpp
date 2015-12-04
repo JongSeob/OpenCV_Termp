@@ -17,11 +17,11 @@ char InputFilePath[100]  = "d:/dip/Images/";					// Specify the directory for th
 const char InputFileName[50]   = "the_return_of_the_king.avi";	// input video file
 
 char OutputFilePath[6][100] = {OUTPUT_PATH ,				// output file
-							   OUTPUT_PATH ,
-							   OUTPUT_PATH ,
-							   OUTPUT_PATH ,
-							   OUTPUT_PATH ,
-							   OUTPUT_PATH }; 
+	OUTPUT_PATH ,
+	OUTPUT_PATH ,
+	OUTPUT_PATH ,
+	OUTPUT_PATH ,
+	OUTPUT_PATH }; 
 
 const char OutputFileName[6][50]  = {"video_none.avi" ,				// output file
 	"video_hist_equal.avi" ,
@@ -32,21 +32,13 @@ const char OutputFileName[6][50]  = {"video_none.avi" ,				// output file
 
 VideoCapture * global_cap;
 
-// Video Processing
-enum {VP_NONE, VP_HIST_EQUAL, VP_HIST_STRETCH, VP_GAMMA, VP_UNSHARP, VP_ACHROMATIC};
-
 void Menu();
 
-void onHistStretchMaxSlide(int pos, void * userdata = 0); /* pos means trackbar position. It means threshold value here. */;
-void onHistStretchMinSlide(int pos, void * userdata = 0); /* pos means trackbar position. It means threshold value here. */;
-void onGammaChangeSlide(int pos, void * userdata = 0); /* pos means trackbar position. It means threshold value here. */;
-void onUnsharpSlide(int pos, void * userdata = 0); /* pos means trackbar position. It means threshold value here. */;
-
-void CreateWindowAndTrackbar(Mat trackbar_background, const char windowName[], const char trackbarName[], int * default, int max, void (*trackbarCallBack)(int pos, void * userdata) );
-
 Mat GetHistEqualOnColorImg(const Mat &src);
-Mat GetUnsharpImg(Mat &src);
-void GetHistStretch(Mat &src);
+Mat GetUnsharpImg(const Mat &src);
+Mat GetHistStretch(const Mat &src);
+
+void Imadjust(const Mat &input, Mat &output, const double input_range[], const double output_range, const double gamma);
 
 int main(void) 
 {
@@ -115,7 +107,7 @@ int main(void)
 	//////////////////////////////////////////////////////////////////////////
 	// 5. Ready to write a videofile
 	//////////////////////////////////////////////////////////////////////////
-	
+
 	VideoWriter wrt;     // 관심구간을 제외한 비디오를 저장할 객체.
 
 #define	CODEC CV_FOURCC('D', 'I', 'V', 'X')
@@ -124,9 +116,6 @@ int main(void)
 	//////////////////////////////////////////////////////////////////////////
 	// 5. Variables for ImgProc's Trackbars
 	//////////////////////////////////////////////////////////////////////////
-	
-	// 트랙바가 생성될 윈도우의 Mat 객체
-	Mat trackbar_background(50,600, 0);
 
 	// Histogram Stretching Min, Max
 	const char histStretchWindowName[50] = {"Histogram Stretch Min, Max"};
@@ -148,9 +137,9 @@ int main(void)
 	int sigma_default = 0;
 	int sigma_max = 10;
 	int sigma = sigma_default;
-	
+
 	Menu();
-		
+
 	while(1)
 	{	
 		if (video_play == true)
@@ -162,7 +151,7 @@ int main(void)
 				/////////////////////////////////////////////////////////////////////////////////////
 				// 동영상이 종료되면 같은 동영상을 재실행. 프로그램이 종료되지 않게 하려고 집어넣었음.
 				/////////////////////////////////////////////////////////////////////////////////////
-				
+
 				if(video_save_flag == true)
 				{
 					wrt.release();
@@ -172,28 +161,28 @@ int main(void)
 				RestartVideo(cap, InputFilePath);
 
 				cap.read(frame);
-				
+
 				system("cls");
 
 				Menu();
-				
+
 				continue;			
 			}
 
 			switch (video_proc)
 			{
 			case VP_HIST_EQUAL   : frame = GetHistEqualOnColorImg(frame);
-								   break;
-			case VP_HIST_STRETCH : GetHistStretch(frame);
-								   break;
+				break;
+			case VP_HIST_STRETCH : frame = GetHistStretch(frame);
+				break;
 			case VP_GAMMA		 : break;
 			case VP_UNSHARP		 : frame = GetUnsharpImg(frame);
-								   break;
+				break;
 			case VP_ACHROMATIC   : break;
 			default				 :  
-								   break;
+				break;
 			}
-			
+
 			if(video_save_flag == true)
 				wrt.write(frame);
 
@@ -206,7 +195,7 @@ int main(void)
 
 			imshow("original", frame);
 		}
-				
+
 		int key;
 
 		key = waitKey(1000.0/(fps*speed));	// 동영상의 fps와 비슷한 속도로 영상을 출력하기 위해 읽는 속도를 조절.
@@ -214,52 +203,42 @@ int main(void)
 		if(key == 0x1b)
 			break;
 
+		
+
 		// 중복선택 된 경우 처음으로 되돌아감
 		if( (key - '0') == video_proc )
 			continue;
-		// 다른 이미지 처리를 실행하게 될 경우 처리할 내용
-		else if( ((key - '0') >= VP_NONE) && ((key - '0') <= VP_ACHROMATIC)   )
+		// 중복선택이 아닌 경우 영상 저장을 종료한다.
+		else if( (key - '0') >= VP_NONE && (key - '0') <= VP_ACHROMATIC )
 		{
-			// 다른 트랙바를 실행해야 하거나, 트랙바를 지워야하는 경우 현재 트랙바를 삭제
-			if(video_proc == VP_HIST_STRETCH)
-				destroyWindow(histStretchWindowName);
-			else if(video_proc == VP_UNSHARP)
-				destroyWindow(unsharpWindowName);
-			else if(video_proc == VP_GAMMA)
-				destroyWindow(gammaWindowName);
-
-			wrt.release();
-			cout << "VideoWrite finished." << endl;
-			video_save_flag = false;
+			if(video_save_flag == true)
+			{
+				wrt.release();
+				cout << "VideoWrite finished." << endl;
+				video_save_flag = false;
+			}
 		}
-			
 
 		switch(key)
 		{
 		case '0'  : video_proc = VP_NONE;			// 원본 영상 출력
-					cout << "No Image Processing" << endl;
-					break;		
+			cout << "No Image Processing" << endl;
+			break;		
 		case '1'  : video_proc = VP_HIST_EQUAL;		// 히스토그램 평활화
-					cout << "Histogram Equalization" << endl;
-					break;		
+			cout << "Histogram Equalization" << endl;
+			break;		
 		case '2'  : video_proc = VP_HIST_STRETCH;	// 히스토그램 스트레칭
-					cout << "Histogram Stretching " << endl;
-					CreateWindowAndTrackbar(trackbar_background, histStretchWindowName, histStretchTrackbarName[0], 
-														&histStretch_default[0], histStretch_max, onHistStretchMinSlide);
-					CreateWindowAndTrackbar(trackbar_background, histStretchWindowName, histStretchTrackbarName[1], 
-														&histStretch_default[1], histStretch_max, onHistStretchMaxSlide);
-					break;		
+			cout << "Histogram Stretching " << endl;
+			break;		
 		case '3'  : video_proc = VP_GAMMA;			// 감마 변환
-					cout << "Change Gamma " << endl;
-					CreateWindowAndTrackbar(trackbar_background, gammaWindowName, gammaTrackbarName, &gamma_default, gamma_max, onGammaChangeSlide);
-					break;		
+			cout << "Change Gamma " << endl;
+			break;		
 		case '4'  : video_proc = VP_UNSHARP;		// Unsharp Masking
-					cout << "Unsharp Masking" << endl;
-					CreateWindowAndTrackbar(trackbar_background, unsharpWindowName, unsharpTrackbarName, &sigma_default, sigma_max, onUnsharpSlide);
-					break;		
+			cout << "Unsharp Masking" << endl;
+			break;		
 		case '5'  : video_proc = VP_ACHROMATIC;		// 특정 hue만 취하고 나머지는 무채색
-					cout << "Achromatic Color" << endl;
-					break;		
+			cout << "Achromatic Color" << endl;
+			break;		
 		case ' '  : video_play = (video_play == true) ? false : true; break;
 		case 's'  : if(video_save_flag == false)
 					{
@@ -293,36 +272,6 @@ void Menu()
 	cout << "==    's'    : video write start / stop        ==" << endl;
 	cout << "== SPACE_BAR : video pause / resume            ==" << endl;
 	cout << "=================================================" << endl;
-}
-
-void onHistStretchMaxSlide( int pos, void * userdata /*= 0*/ )
-{
-	cout << "max = " << pos << endl;
-}
-
-void onHistStretchMinSlide( int pos, void * userdata /*= 0*/ )
-{
-	cout << "min = " << pos << endl;
-}
-
-void onGammaChangeSlide( int pos, void * userdata /*= 0*/ )
-{
-	cout << "gamma = " << pos / 10.0 << endl;
-}
-
-void onUnsharpSlide( int pos, void * userdata /*= 0*/ )
-{
-	cout << "sigma = " << pos << endl;
-
-	// 커널크기 자동 조절 //
-}
-
-void CreateWindowAndTrackbar( Mat trackbar_background, const char windowName[], const char trackbarName[], int * default, int max, 
-								void (*trackbarCallBack)(int pos, void * userdata) )
-{
-	namedWindow(windowName);
-	imshow(windowName, trackbar_background);
-	createTrackbar(trackbarName, windowName, default, max, trackbarCallBack);
 }
 
 cv::Mat GetHistEqualOnColorImg( const Mat &src )
@@ -359,22 +308,23 @@ cv::Mat GetHistEqualOnColorImg( const Mat &src )
 	return dst;
 }
 
-cv::Mat GetUnsharpImg( Mat &src )
+cv::Mat GetUnsharpImg( const Mat &src )
 {
+	Mat img = src;
 	// Initialize common variables and objects over the test method sections.
 	int ksize = 31;					// Kernel Size. must be odd positive.  Big kernel size causes no problem for simulation. It affects on time during real time implementation.
 	float	sigma = 12.0;			// Test for the various sigmas, eg. 3, 7, ... etc. Can you tell the effect of the magnitude of sigma? It affects on local or global aspect of emphasis.
 	float	scale = 2.0;			// Test for the various scales, eg. 3, 7, etc.  Can you tell the effect of scale? It affects on the strength of emphasis.
 
 	cv::Mat Blur, dst, dstPositive, dstNegative;
-	cv::GaussianBlur(src, Blur, cv::Size(ksize, ksize), sigma);		// kernel size = ksize
+	cv::GaussianBlur(img, Blur, cv::Size(ksize, ksize), sigma);		// kernel size = ksize
 	//cv::namedWindow("GaussianBlur");		cv::imshow("GaussianBlur", Blur); 
 
-	src.convertTo(src,CV_16S);
+	img.convertTo(img,CV_16S);
 	Blur.convertTo(Blur, CV_16S);
 
-	#if 0
-//1) Show high frequence components, Unsharp mask
+#if 0
+	//1) Show high frequence components, Unsharp mask
 	// Unsharp mask = original image - Bluurred image
 	// The unsharp mask is identified later as a negative 2nd derivative of the origonal image.
 	dst = scale * (src-Blur);						// Unsharp mask
@@ -387,15 +337,15 @@ cv::Mat GetUnsharpImg( Mat &src )
 
 
 	// 2) The unsharp mask is (original-Blur). Add it to original image.
-	dst = src + scale * (src-Blur);
+	dst = img + scale * (img-Blur);
 	dst.convertTo(dstPositive,CV_8U,1);
 	dst.convertTo(dstNegative,CV_8U,-1);			// dstNegative contains Negative part of dst.
 
 	//cv::namedWindow("Positive: original+UnsharpMask(original-Blur)"); 	cv::imshow("Positive: original+UnsharpMask(original-Blur)",dstPositive);
 	//cv::namedWindow("Negative: original+UnsharpMask(original-Blur)"); 	cv::imshow("Negative: original+UnsharpMask(original-Blur)",dstNegative);
 
-	#if 0
-// 3) If we subtract the 2nd derivative from the original image, the output image is sharpened. 
+#if 0
+	// 3) If we subtract the 2nd derivative from the original image, the output image is sharpened. 
 	// Through trial and error, I found that the (Blur-original) is the 2nd derivative of the original image.
 	dst = src - scale * (Blur-src);
 	dst.convertTo(dstPositive,CV_8U,1);
@@ -408,8 +358,10 @@ cv::Mat GetUnsharpImg( Mat &src )
 	return dstPositive;	
 }
 
-void GetHistStretch( Mat &src )
+cv::Mat GetHistStretch( const Mat &src )
 {
+	Mat img = src;
+
 	// Make a table for Histogram streteching
 	int	min=30, max=180;
 	int		 i,j;
@@ -418,10 +370,12 @@ void GetHistStretch( Mat &src )
 	for ( i=max; i<=255; i++)	LUT[i] = 255;	
 	for ( i=min; i<max; i++)	{	LUT[i] = (unsigned char) ( (float)i * 255.0 / (float)(max-min) - (255.0 * min / (float(max-min) ) ) );}
 
-	for (j =0; j<src.rows; j++) 
-		for (i =0; i<src.cols; i++) {
-			src.at<cv::Vec3b>(j,i)[0] = LUT[ src.at<cv::Vec3b>(j,i)[0] ];	
-			src.at<cv::Vec3b>(j,i)[1] = LUT[ src.at<cv::Vec3b>(j,i)[1] ];	
-			src.at<cv::Vec3b>(j,i)[2] = LUT[ src.at<cv::Vec3b>(j,i)[2] ];	
+	for (j =0; j<img.rows; j++) 
+		for (i =0; i<img.cols; i++) {
+			img.at<cv::Vec3b>(j,i)[0] = LUT[ img.at<cv::Vec3b>(j,i)[0] ];	
+			img.at<cv::Vec3b>(j,i)[1] = LUT[ img.at<cv::Vec3b>(j,i)[1] ];	
+			img.at<cv::Vec3b>(j,i)[2] = LUT[ img.at<cv::Vec3b>(j,i)[2] ];	
 		}
+
+		return img;
 }

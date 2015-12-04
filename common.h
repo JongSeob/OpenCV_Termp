@@ -16,4 +16,7 @@
 using namespace cv;
 using namespace std;
 
+// Video Processing
+enum {VP_NONE, VP_HIST_EQUAL, VP_HIST_STRETCH, VP_GAMMA, VP_UNSHARP, VP_ACHROMATIC};
+
 #endif // common_h__
