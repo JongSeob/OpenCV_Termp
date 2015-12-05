@@ -223,4 +223,4 @@ void Menu()
 	cout << "==    's'    : video write start / stop        ==" << endl;
 	cout << "== SPACE_BAR : video pause / resume            ==" << endl;
 	cout << "=================================================" << endl;
-}
+} 
