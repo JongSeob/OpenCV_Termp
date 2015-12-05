@@ -11,66 +11,23 @@
 
 // main.cpp 에서 정의한 객체, 문자열들.
 
-extern char InputFilePath[100];
-
 extern VideoCapture * global_cap;
 
-int OpenVideoFile(VideoCapture &cap, const char videoFilePath[])
+int OpenCamera( VideoCapture &cap, const int camera_num )
 {
-	cap.open(videoFilePath);
+	cap.open(camera_num);	
 
 	if(!cap.isOpened()) {
-		printf("Failed to open a video file\n");
+		printf("Failed to open camera\n");
 		return -1;
 	}
 
 	return 0;
 }
 
-int RestartVideo(VideoCapture &cap, const char videoFilePath[])
-{
-	cap.release();
-	
-	return OpenVideoFile(cap, videoFilePath);	
-}
-
-void SetVideoPosTo(VideoCapture &cap, const int msec)
-{
-	RestartVideo(cap, InputFilePath);
-
-	do 
-	{
-		cap.grab();
-	} while (cap.get(CV_CAP_PROP_POS_MSEC) < msec);
-}
-
-int GetVideoLengthInMSEC( const char videoFilePath[] )
-{
-	VideoCapture cap;
-
-	int video_length;
-	double fps;
-	double total_frames;
-	
-	OpenVideoFile(cap, videoFilePath);
-	
-	fps = cap.get(CV_CAP_PROP_FPS);
-	total_frames = cap.get(CV_CAP_PROP_FRAME_COUNT);
-
-	//////////////////////////////////////////////////////////////////////////
-	// 동영상 길이를 초 단위로 구하고,
-	// 1000을 곱해 msec단위로 변환한 뒤 반환.
-	//////////////////////////////////////////////////////////////////////////
-
-	video_length = (int)((total_frames / fps) * 1000);
-
-	// 동영상의 종료시간을 반환
-	return video_length;
-}
-
 void onTrackbarSlide(int pos, void * userdata /* = 0 */)
 {
-	SetVideoPosTo(*global_cap, pos);
+	
 }
 
 // Callback function for mouse events
@@ -134,7 +91,7 @@ void mouse_callback(int event, int x, int y, int, void * userdata /* = 0 */)
 		cap.retrieve(img);
 		Mat img_clone = img.clone();
 		rectangle(img_clone, corner1, pt, Scalar(0, 0, 255));
-		imshow("original", img_clone);
+		imshow("camera", img_clone);
 		
 	}
 

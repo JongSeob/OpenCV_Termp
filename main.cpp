@@ -14,9 +14,6 @@
 
 #define OUTPUT_PATH "E:/dip_termp/"
 
-char InputFilePath[100]  = "d:/dip/Images/";					// Specify the directory for the file to be saved in
-const char InputFileName[50]   = "bike.avi";//"the_return_of_the_king.avi";	// input video file
-
 char OutputFilePath[6][100] = {OUTPUT_PATH ,				// output file
 	OUTPUT_PATH ,
 	OUTPUT_PATH ,
@@ -52,52 +49,36 @@ int main(void)
 	int speed = 1;
 
 	//////////////////////////////////////////////////////////////////////////
-	// 2. File Path
+	// 2. Define Out File Path
 	//////////////////////////////////////////////////////////////////////////
-
-	// define InputFilePath, OutputFilePath
-
-	strcat_s(InputFilePath,  InputFileName);
 
 	for(int i=0; i < 6; i++)
 		strcat_s(OutputFilePath[i], OutputFileName[i]);	
 
 
 	//////////////////////////////////////////////////////////////////////////
-	// 3. Window, Trackbar, Mouse
+	// 3. Window, Mouse
 	//////////////////////////////////////////////////////////////////////////
+		
+	namedWindow("camera", 1);
 
-	// Create Window and Trackbar
+	setMouseCallback("camera", mouse_callback);
 
-	int	videoTotalLength = GetVideoLengthInMSEC(InputFilePath);	// Maximum slider value
-	int	slider_position = 0;							// Constantly updated slider value
-
-	namedWindow("original", 1);
-	createTrackbar("Time(msec)", "original", &slider_position, videoTotalLength, onTrackbarSlide);
-
-	// Set the mouse event callback function
-
-	setMouseCallback("original", mouse_callback);
-	
 	//////////////////////////////////////////////////////////////////////////
 	// 4. Open The File and Define Video Information Values
 	//////////////////////////////////////////////////////////////////////////
-
-	// Open the VideoFile
-
-	OpenVideoFile(cap, InputFilePath);
-
+	
+	OpenCamera(cap, 0);
+	
 	Mat frame; // 영상에서 읽어낸 프레임을 저장할 객체
 
 	CvSize FrameSize;
 
 	FrameSize.width = (int)cap.get(CV_CAP_PROP_FRAME_WIDTH );
 	FrameSize.height = (int)cap.get(CV_CAP_PROP_FRAME_HEIGHT );
-
+	
 	double fps = cap.get(CV_CAP_PROP_FPS);
-
-	int runningTime; // 현재 프레임이 동영상 실행 후 몇 msec후의 프레임인지를 나타낸다.
-
+	
 	//////////////////////////////////////////////////////////////////////////
 	// 5. Ready to write a videofile
 	//////////////////////////////////////////////////////////////////////////
@@ -133,7 +114,7 @@ int main(void)
 	int sigma = sigma_default;
 
 	Menu();
-
+	
 	while(1)
 	{	
 		if (video_play == true)
@@ -142,25 +123,8 @@ int main(void)
 
 			if(frame.empty()) 
 			{
-				/////////////////////////////////////////////////////////////////////////////////////
-				// 동영상이 종료되면 같은 동영상을 재실행. 프로그램이 종료되지 않게 하려고 집어넣었음.
-				/////////////////////////////////////////////////////////////////////////////////////
-
-				if(video_save_flag == true)
-				{
-					wrt.release();
-					video_save_flag = false;
-				}
-
-				RestartVideo(cap, InputFilePath);
-
-				cap.read(frame);
-
-				system("cls");
-
-				Menu();
-
-				continue;			
+					cout << "Camera ShutDown" << endl;
+					exit(1);
 			}
 
 			switch (video_proc)
@@ -180,25 +144,17 @@ int main(void)
 
 			if(video_save_flag == true)
 				wrt.write(frame);
-
-			runningTime = (int)cap.get(CV_CAP_PROP_POS_MSEC);
-
-			slider_position = runningTime;
-
-			createTrackbar("Time(msec)", "original", &slider_position, videoTotalLength, onTrackbarSlide);
-			//setTrackbarPos("Time(msec)", "original", runningTime); // 이 함수를 이용하면 영상이 버벅거림.
-
-			imshow("original", frame);
+			
+			imshow("camera", frame);
 		}
 
 		int key;
 
-		key = (int)waitKey(1000.0/(fps*speed));	// 동영상의 fps와 비슷한 속도로 영상을 출력하기 위해 읽는 속도를 조절.
+		//key = (int)waitKey(1000.0/(fps*speed));	// 동영상의 fps와 비슷한 속도로 영상을 출력하기 위해 읽는 속도를 조절.
+		key = (int)waitKey(1);		
 
 		if(key == 0x1b)
 			break;
-
-
 
 		// 중복선택 된 경우 처음으로 되돌아감
 		if( (key - '0') == video_proc )
