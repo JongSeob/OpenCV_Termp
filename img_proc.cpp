@@ -2,6 +2,14 @@
 #include "img_proc.h"
 #include "func.h"
 
+extern int stretchMin;
+extern int stretchMax;
+extern double gamma;
+extern int sigma;
+extern int margin;
+
+Mat histSretchLut(1, 256, CV_8UC1);
+
 cv::Mat GetHistEqualOnColorImg( const Mat &img )
 {
 	cv::Mat src = img;
@@ -90,46 +98,56 @@ cv::Mat GetUnsharpImg( const Mat &img )
 cv::Mat GetHistStretch( const Mat &img )
 {
 	Mat src = img;
+	Mat dst;
+	Mat tmp;
 
-	// Make a table for Histogram streteching
-	int	min=30, max=180;
-	int		 i,j;
-	unsigned char LUT[256];
-	for ( i=0; i<min; i++)		LUT[i] = 0;
-	for ( i=max; i<=255; i++)	LUT[i] = 255;	
-	for ( i=min; i<max; i++)	{	LUT[i] = (unsigned char) ( (float)i * 255.0 / (float)(max-min) - (255.0 * min / (float(max-min) ) ) );}
+	Mat gray;
+	Mat L_in, L_out;
 
-	for (j =0; j<src.rows; j++) 
-		for (i =0; i<src.cols; i++) {
-			src.at<cv::Vec3b>(j,i)[0] = LUT[ src.at<cv::Vec3b>(j,i)[0] ];	
-			src.at<cv::Vec3b>(j,i)[1] = LUT[ src.at<cv::Vec3b>(j,i)[1] ];	
-			src.at<cv::Vec3b>(j,i)[2] = LUT[ src.at<cv::Vec3b>(j,i)[2] ];	
-		}
+	Mat Cin, Cout;
+	Mat vCin[3], vCout[3];
 
-		return src;
+
+	// Convert to gray and Histogram Stretching
+	
+	cvtColor(src, gray, CV_BGR2GRAY);
+	
+	LUT(gray, histSretchLut, L_out);
+
+	// gray to color channel
+
+	img.convertTo(Cin, CV_32FC3);      // Cin = original color image
+
+	split(Cin, vCin);
+
+	gray.convertTo(L_in, CV_32FC1);    // L_in  = original gray     (Lut in)
+	L_out.convertTo(L_out, CV_32FC1);  // L_out = gray HistStretch  (Lut out)
+		
+	for(int i = 0; i < 3; i++)
+	{
+		// vCout[i] = Lout * (vCin[i] / L_in) ^ gamma
+		divide(vCin[i], L_in, tmp);			//  vCin[i] / L_in
+		pow(tmp, gamma, tmp);				//  (vCin[i] / L_in) ^ gamma
+		multiply(L_out, tmp, vCout[i]);		//  Lout * (vCin[i] / L_in) ^ gamma
+	}
+
+	merge(vCout, 3, dst);
+	dst.convertTo(dst, CV_8UC3);
+
+	return dst;
 }
 
 cv::Mat GetGammaChangedImg( const Mat &img )
 {
 	Mat src = img;
+	
 	Mat dst;
 
-	double gamma = 1.3;
-
-	// scaled [0, 255] to [0, 1.0]
-	src.convertTo(dst, CV_8UC3, 1.0 / 255.0);
-
-#if 0
-	img.convertTo(img, CV_32FC3);
-
-	//cv::pow(img, gamma, dst);
-
-	imshow("gamma !", dst);
-
+	src.convertTo(src, CV_32FC3);
+	
+	cv::pow(src, gamma, dst);
+	
 	dst.convertTo(dst, CV_8UC3);
-#endif
-
-	dst = src * gamma;
 
 	return dst;
 }
@@ -155,7 +173,8 @@ cv::Mat GetAchromaticImg( const Mat &img )
 
 	//imageHLS[0].copyTo(HLS[0]);		// Q: Can you tell why this does not work?
 	//imageHLS[1].copyTo(HLS[1]); imageHLS[2].copyTo(HLS[2]);
-
+	
+#if 0
 	HLS[0] += 90;					// Rotate hue 90 degrees in counterclockwise
 	cv::merge(HLS, dst2);
 	cvtColor(dst2, dst2, CV_HLS2BGR);
@@ -182,6 +201,7 @@ cv::Mat GetAchromaticImg( const Mat &img )
 	cvtColor(dst2, dst2, CV_HLS2BGR);
 	cv::namedWindow("Hue rotated by 360+90 degrees"); cv::imshow("Hue rotated by 360+90 degrees",dst2);
 	
+#endif
 // 음수연산을 하는경우 에러메시지와 함께 종료.
 #if 0
 	imageHLS[0] -= 90;					// Rotate hue 90 degrees in clockwise. must be the same as +270.
@@ -197,3 +217,56 @@ cv::Mat GetAchromaticImg( const Mat &img )
 	
 	return img;
 }
+
+void UpdateLut( Mat &lut, const int low, const int high )
+{
+	if(low == high)
+	{
+		cout << "low == high is incorrect" << endl;
+		return;
+	}
+
+	for(int i = 0; i < low; i++)
+		lut.at<uchar>(i) = 0;
+
+	for(int i = high; i < 256; i++)
+		lut.at<uchar>(i) = 255;
+
+	// low ~ high-1 사이의 개수 //
+	int amount = (high - 1) - low;
+
+	for(int i = low; (i >= low) && (i < high); i++)
+	{
+		// i == low ~ high-1  =>   i - low ==  0 ~ amount// 
+		lut.at<uchar>(i) = (255 / amount) * (i - low);
+	}
+}
+
+cv::Mat Imadjust( const Mat &src, Mat &dst, const double input_range[], const double output_range[], const double gamma /*= 1*/ )
+{
+	if(input_range[0] < 0 || input_range[0] > 1 ||
+		input_range[1] < 0 || input_range[1] > 1 ||
+		output_range[0] < 0 || output_range[0] > 1 ||
+		output_range[1] < 0 || output_range[1] > 1		
+		)
+	{
+		cout << "invalid range" << endl;
+	}
+	
+	LUT(src, histSretchLut, dst);
+
+	// intensity transform
+/*
+	for( y = 0; y < img_size.height; y++)
+	{
+		for (x = 0; x < img_size.width; x++)
+		{
+			val = ((uchar*)(img.data + src->widthStep*y))[x]; 
+			val = pow((val - input_range[0])/err_in, gamma) * err_out + output_range[0];
+			if(val>255) val=255; if(val<0) val=0; // Make sure src is in the range [low,high]
+			((uchar*)(dst->imageData + dst->widthStep*y))[x] = (uchar) val;
+	}
+*/
+	return dst;
+}
+

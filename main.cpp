@@ -30,6 +30,16 @@ const char OutputFileName[6][50]  = {"video_none.avi" ,				// output file
 
 VideoCapture * global_cap;
 
+int stretchMin = 30;
+int stretchMax = 180;
+double gamma = 1.0;
+int sigma;
+int margin;
+
+extern Mat histSretchLut;
+
+//Mat lut(1, 256, CV_8UC1); // 1 x 256 크기의 Mat 클래스. Imadjust에서 사용하기 위한 LUT 정보를 미리 저장하고 있는다.
+
 void Menu();
 
 int main(void) 
@@ -59,7 +69,7 @@ int main(void)
 	//////////////////////////////////////////////////////////////////////////
 	// 3. Window, Mouse
 	//////////////////////////////////////////////////////////////////////////
-		
+
 	namedWindow("camera", 1);
 
 	setMouseCallback("camera", mouse_callback);
@@ -67,18 +77,18 @@ int main(void)
 	//////////////////////////////////////////////////////////////////////////
 	// 4. Open The File and Define Video Information Values
 	//////////////////////////////////////////////////////////////////////////
-	
+
 	OpenCamera(cap, 0);
-	
+
 	Mat frame; // 영상에서 읽어낸 프레임을 저장할 객체
 
 	CvSize FrameSize;
 
 	FrameSize.width = (int)cap.get(CV_CAP_PROP_FRAME_WIDTH );
 	FrameSize.height = (int)cap.get(CV_CAP_PROP_FRAME_HEIGHT );
-	
+
 	double fps = cap.get(CV_CAP_PROP_FPS);
-	
+
 	//////////////////////////////////////////////////////////////////////////
 	// 5. Ready to write a videofile
 	//////////////////////////////////////////////////////////////////////////
@@ -93,28 +103,49 @@ int main(void)
 	//////////////////////////////////////////////////////////////////////////
 
 	// Histogram Stretching Min, Max
-	const char histStretchWindowName[50] = {"Histogram Stretch Min, Max"};
-	const char histStretchTrackbarName[2][50] = {"Min", "Max"};
-	int histStretch_default[2] = {0, 10};
-	int histStretch_max = 30;
+
+	TrackbarInfo trackbar_HistStretch_Min;
+
+	trackbar_HistStretch_Min.windowName = "camera";
+	trackbar_HistStretch_Min.trackbarName = "Min";
+	trackbar_HistStretch_Min.defaultValue = stretchMin;
+	trackbar_HistStretch_Min.maxValue = 255;
+
+	TrackbarInfo trackbar_HistStretch_Max;
+
+	trackbar_HistStretch_Max.windowName = "camera";
+	trackbar_HistStretch_Max.trackbarName = "Max";
+	trackbar_HistStretch_Max.defaultValue = stretchMax;
+	trackbar_HistStretch_Max.maxValue = 255;
+
+	CreateTrackbar(trackbar_HistStretch_Min, onTrackbarStretchMin);
+	CreateTrackbar(trackbar_HistStretch_Max, onTrackbarStretchMax);
+	
+	// Initialize Lut
+	UpdateLut(histSretchLut, stretchMin, stretchMax);
 
 	// Gamma Change Value 
-	const char gammaWindowName[50] = "Gamma";
-	const char gammaTrackbarName[50] = "0.1 units ";
-	int gamma_default = 0;
-	int gamma_max = 30;
-	int gamma = gamma_default;
 
+	TrackbarInfo trackbar_Gamma;
+
+	trackbar_Gamma.windowName = "camera";
+	trackbar_Gamma.trackbarName = "0.1 units ";
+	trackbar_Gamma.defaultValue = gamma*10;
+	trackbar_Gamma.maxValue = 30;
+
+	CreateTrackbar(trackbar_Gamma, onTrackbarGamma);
 
 	// Unsharp Masking Sigma
-	const char unsharpWindowName[50] = "Unsharp Masking Sigma";
-	const char unsharpTrackbarName[50] = "Sigma ";
-	int sigma_default = 0;
-	int sigma_max = 10;
-	int sigma = sigma_default;
+
+	TrackbarInfo trackbar_Unsharp;
+
+	trackbar_Unsharp.windowName = "Unsharp Masking Sigma";;
+	trackbar_Unsharp.trackbarName = "Sigma";
+	trackbar_Unsharp.defaultValue = sigma;
+	trackbar_Unsharp.maxValue = 10;	
 
 	Menu();
-	
+
 	while(1)
 	{	
 		if (video_play == true)
@@ -123,28 +154,28 @@ int main(void)
 
 			if(frame.empty()) 
 			{
-					cout << "Camera ShutDown" << endl;
-					exit(1);
+				cout << "Camera ShutDown" << endl;
+				exit(1);
 			}
 
 			switch (video_proc)
 			{
 			case VP_HIST_EQUAL   : frame = GetHistEqualOnColorImg(frame);
-							       break;
+				break;
 			case VP_HIST_STRETCH : frame = GetHistStretch(frame);
-				                   break;
+				break;
 			case VP_GAMMA		 : frame = GetGammaChangedImg(frame);
-				                   break;
+				break;
 			case VP_UNSHARP		 : frame = GetUnsharpImg(frame);
-				                   break;
+				break;
 			case VP_ACHROMATIC   : frame = GetAchromaticImg(frame);
-								   break;
+				break;
 			default				 : break;
 			}
 
 			if(video_save_flag == true)
 				wrt.write(frame);
-			
+
 			imshow("camera", frame);
 		}
 

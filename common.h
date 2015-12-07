@@ -13,6 +13,14 @@
 #include <opencv2/highgui/highgui.hpp>
 #include "opencv.hpp"
 
+struct TrackbarInfo 
+{
+	char * windowName;
+	char * trackbarName;
+	int defaultValue;
+	int maxValue;
+};
+
 using namespace cv;
 using namespace std;
 
