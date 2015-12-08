@@ -203,6 +203,7 @@ int main(void)
 			// 트랙바를 새로 생성하기 위해 기존의 윈도우를 종료 후 재생성
 			destroyWindow("camera");
 			namedWindow("camera");
+			setMouseCallback("camera", mouse_callback);
 		}
 
 		switch(key)

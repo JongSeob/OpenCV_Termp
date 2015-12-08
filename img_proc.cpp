@@ -173,15 +173,20 @@ cv::Mat GetAchromaticImg( const Mat &img )
 
 	vHSV_Ach[1] = 0;
 
+	// 클릭한 픽셀의 Hue 값
+	static int clicked_hue;
+
 	// 새로운 위치를 클릭하면 point의 값을 갱신
 	if(point != ::mouse_click_point)
 	{
 		point = mouse_click_point;
 		cout << "갱신된 point 값 : " << point << endl;
-	}
+		
+		// 클릭한 픽셀의 Hue 값
+		clicked_hue = vHSV_Origin[0].at<uchar>(point);
 
-	// 클릭한 픽셀의 Hue 값
-	int clicked_hue = vHSV_Origin[0].at<int>(point);
+		cout << "클릭한 픽셀의 Hue 값 :" << (int)clicked_hue << endl;
+	}
 
 	if( point.x > 0 && point.y > 0)
 	{
@@ -191,8 +196,8 @@ cv::Mat GetAchromaticImg( const Mat &img )
 			{
 				// 현재 픽셀의 Hue 값이 clicked_hue 와 10이상 차이가 나지 않는다면
 				// 원래 채도로 되돌린다.
-				if( (vHSV_Origin[0].at<int>(height, width) >= std::max(clicked_hue-200000000, 0) )  &&
-					(vHSV_Origin[0].at<int>(height, width) < clicked_hue+300000000 ) 
+				if( (vHSV_Origin[0].at<uchar>(height, width) >= std::max(clicked_hue-5, 0) )  &&
+					(vHSV_Origin[0].at<uchar>(height, width) < std::min(clicked_hue+5, 255) ) 
 					)
 				{
 					vHSV_Ach[1].at<int>(height,width) = vHSV_Origin[1].at<int>(height,width);
@@ -200,9 +205,6 @@ cv::Mat GetAchromaticImg( const Mat &img )
 			}
 		}
 	}
-
-	cout << "2중 for문 종료" << endl;
-
 	
 	Mat dst;
 
