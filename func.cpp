@@ -22,6 +22,8 @@ extern int margin;
 
 extern Mat histSretchLut;
 
+Point mouse_click_point;
+
 int OpenCamera( VideoCapture &cap, const int camera_num )
 {
 	cap.open(camera_num);	
@@ -38,18 +40,13 @@ int OpenCamera( VideoCapture &cap, const int camera_num )
 void mouse_callback(int event, int x, int y, int, void * userdata /* = 0 */)
 {
 	VideoCapture &cap = *global_cap;
-
-	Mat img;
-
-	Point hue_loc(x,y);
-
-	if(event == EVENT_LBUTTONUP || event == EVENT_RBUTTONUP)
+			
+	if(event == EVENT_LBUTTONDOWN)
 	{
-		cap.retrieve(img);
+		mouse_click_point.x = x;
+		mouse_click_point.y = y;
 
-		cout << "Point = " << hue_loc << endl;
-		//cout << "img at = " << img.at<int>(x, y) << endl;
-		
+		cout << "Point = " << mouse_click_point << endl;
 	}
 }
 

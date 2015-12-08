@@ -49,7 +49,7 @@ int main(void)
 	global_cap = &cap;
 
 	//////////////////////////////////////////////////////////////////////////
-	// 1. Flags
+	// 1. 플래그 변수 생성
 	//////////////////////////////////////////////////////////////////////////
 
 	int video_proc = VP_NONE;
@@ -59,7 +59,7 @@ int main(void)
 	int speed = 1;
 
 	//////////////////////////////////////////////////////////////////////////
-	// 2. Define Out File Path
+	// 2. 저장된 영상 경로 설정
 	//////////////////////////////////////////////////////////////////////////
 
 	for(int i=0; i < 6; i++)
@@ -67,7 +67,7 @@ int main(void)
 
 
 	//////////////////////////////////////////////////////////////////////////
-	// 3. Window, Mouse
+	// 3. 윈도우, 마우스 핸들러 생성
 	//////////////////////////////////////////////////////////////////////////
 
 	namedWindow("camera", 1);
@@ -75,7 +75,7 @@ int main(void)
 	setMouseCallback("camera", mouse_callback);
 
 	//////////////////////////////////////////////////////////////////////////
-	// 4. Open The File and Define Video Information Values
+	// 4. 카메라 실행, 카메라 영상 정보를 변수에 저장
 	//////////////////////////////////////////////////////////////////////////
 
 	OpenCamera(cap, 0);
@@ -90,7 +90,7 @@ int main(void)
 	double fps = cap.get(CV_CAP_PROP_FPS);
 
 	//////////////////////////////////////////////////////////////////////////
-	// 5. Ready to write a videofile
+	// 5. 영상 저장을 위한 변수 선언.
 	//////////////////////////////////////////////////////////////////////////
 
 	VideoWriter wrt;     // 관심구간을 제외한 비디오를 저장할 객체.
@@ -99,7 +99,7 @@ int main(void)
 
 
 	//////////////////////////////////////////////////////////////////////////
-	// 5. Variables for ImgProc's Trackbars
+	// 6. 트랙바 생성을 위한 구조체
 	//////////////////////////////////////////////////////////////////////////
 
 	// Histogram Stretching Min, Max
@@ -117,13 +117,7 @@ int main(void)
 	trackbar_HistStretch_Max.trackbarName = "Max";
 	trackbar_HistStretch_Max.defaultValue = stretchMax;
 	trackbar_HistStretch_Max.maxValue = 255;
-
-	CreateTrackbar(trackbar_HistStretch_Min, onTrackbarStretchMin);
-	CreateTrackbar(trackbar_HistStretch_Max, onTrackbarStretchMax);
 	
-	// Initialize Lut
-	UpdateLut(histSretchLut, stretchMin, stretchMax);
-
 	// Gamma Change Value 
 
 	TrackbarInfo trackbar_Gamma;
@@ -132,9 +126,7 @@ int main(void)
 	trackbar_Gamma.trackbarName = "0.1 units ";
 	trackbar_Gamma.defaultValue = gamma*10;
 	trackbar_Gamma.maxValue = 30;
-
-	CreateTrackbar(trackbar_Gamma, onTrackbarGamma);
-
+	
 	// Unsharp Masking Sigma
 
 	TrackbarInfo trackbar_Unsharp;
@@ -143,6 +135,9 @@ int main(void)
 	trackbar_Unsharp.trackbarName = "Sigma";
 	trackbar_Unsharp.defaultValue = sigma;
 	trackbar_Unsharp.maxValue = 10;	
+
+	// Initialize Lut
+	UpdateLut(histSretchLut, stretchMin, stretchMax);
 
 	Menu();
 
@@ -179,6 +174,10 @@ int main(void)
 			imshow("camera", frame);
 		}
 
+		//////////////////////////////////////////////////////////////////////////
+		// Processing Key Input
+		//////////////////////////////////////////////////////////////////////////
+
 		int key;
 
 		//key = (int)waitKey(1000.0/(fps*speed));	// 동영상의 fps와 비슷한 속도로 영상을 출력하기 위해 읽는 속도를 조절.
@@ -187,18 +186,23 @@ int main(void)
 		if(key == 0x1b)
 			break;
 
-		// 중복선택 된 경우 처음으로 되돌아감
+		// 중복선택 된 경우
 		if( (key - '0') == video_proc )
 			continue;
-		// 중복선택이 아닌 경우 영상 저장을 종료한다.
+		// 중복선택이 아닌 경우
 		else if( (key - '0') >= VP_NONE && (key - '0') <= VP_ACHROMATIC )
 		{
+			// 새로운 이미지 저장을 위해 기존의 저장을 종료
 			if(video_save_flag == true)
 			{
 				wrt.release();
 				cout << "VideoWrite finished." << endl;
 				video_save_flag = false;
 			}
+
+			// 트랙바를 새로 생성하기 위해 기존의 윈도우를 종료 후 재생성
+			destroyWindow("camera");
+			namedWindow("camera");
 		}
 
 		switch(key)
@@ -211,9 +215,12 @@ int main(void)
 			break;		
 		case '2'  : video_proc = VP_HIST_STRETCH;	// 히스토그램 스트레칭
 			cout << "Histogram Stretching " << endl;
+			CreateTrackbar(trackbar_HistStretch_Min, onTrackbarStretchMin);
+			CreateTrackbar(trackbar_HistStretch_Max, onTrackbarStretchMax);
 			break;		
 		case '3'  : video_proc = VP_GAMMA;			// 감마 변환
 			cout << "Change Gamma " << endl;
+			CreateTrackbar(trackbar_Gamma, onTrackbarGamma);
 			break;		
 		case '4'  : video_proc = VP_UNSHARP;		// Unsharp Masking
 			cout << "Unsharp Masking" << endl;

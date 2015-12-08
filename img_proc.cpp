@@ -2,11 +2,14 @@
 #include "img_proc.h"
 #include "func.h"
 
+// main.cpp
 extern int stretchMin;
 extern int stretchMax;
 extern double gamma;
 extern int sigma;
 extern int margin;
+
+extern Point mouse_click_point; // func.cpp
 
 Mat histSretchLut(1, 256, CV_8UC1);
 
@@ -106,8 +109,7 @@ cv::Mat GetHistStretch( const Mat &img )
 
 	Mat Cin, Cout;
 	Mat vCin[3], vCout[3];
-
-
+	
 	// Convert to gray and Histogram Stretching
 	
 	cvtColor(src, gray, CV_BGR2GRAY);
@@ -132,7 +134,7 @@ cv::Mat GetHistStretch( const Mat &img )
 	}
 
 	merge(vCout, 3, dst);
-	dst.convertTo(dst, CV_8UC3);
+	dst.convertTo(dst, CV_8UC3);	
 
 	return dst;
 }
@@ -142,80 +144,73 @@ cv::Mat GetGammaChangedImg( const Mat &img )
 	Mat src = img;
 	
 	Mat dst;
-
-	src.convertTo(src, CV_32FC3);
 	
-	cv::pow(src, gamma, dst);
+	src.convertTo(src, CV_32FC3, 1.0 / 255.0);
 	
-	dst.convertTo(dst, CV_8UC3);
+	cv::pow(src, 1 / gamma, dst);
+	
+	dst.convertTo(dst, CV_8UC3, 255);
 
 	return dst;
 }
 
 cv::Mat GetAchromaticImg( const Mat &img )
 {
-	cv::Mat src = img;//imread("D:/dip/images/colorbar_chart.jpg");//img;
-
-	// image*alpha + beta
-	src.convertTo(src, CV_32F,1.0/255.0);
-
-	//image.convertTo(image, CV_32F);
-	cv::namedWindow("Input Image");	cv::imshow("Input Image",src);
-
-	cv::Mat dst, dst2;
-	cvtColor(src, dst, CV_BGR2HLS);
-
-	// Split the image
-	std::vector<cv::Mat> imageHLS, HLS;					// Vector whose elements are Mat(s).
-	cv::split(dst, imageHLS);							// imageHLS[0], imageHLS[1], imageHLS[2]
-	cv::split(dst, HLS);			
-	//HLS=imageHLS;					Do not use!!!! They point to the same data content. This assignment does not copy data.
-
-	//imageHLS[0].copyTo(HLS[0]);		// Q: Can you tell why this does not work?
-	//imageHLS[1].copyTo(HLS[1]); imageHLS[2].copyTo(HLS[2]);
+	cv::Mat src = img;
 	
-#if 0
-	HLS[0] += 90;					// Rotate hue 90 degrees in counterclockwise
-	cv::merge(HLS, dst2);
-	cvtColor(dst2, dst2, CV_HLS2BGR);
-	cv::namedWindow("Hue rotated by 90 degrees"); cv::imshow("Hue rotated by 90 degrees",dst2);
-
-
-	HLS[0] += 90;					// Rotate hue 90 degrees again. total 180.
-	cv::merge(HLS, dst2);
-	cvtColor(dst2, dst2, CV_HLS2BGR);
-	cv::namedWindow("Hue rotated by 180 degrees"); cv::imshow("Hue rotated by 180 degrees",dst2);
-
-	HLS[0] += 90;					// Rotate hue 90 degrees again. total 270. 
-	cv::merge(HLS, dst2);
-	cvtColor(dst2, dst2, CV_HLS2BGR);
-	cv::namedWindow("Hue rotated by 270 degrees"); cv::imshow("Hue rotated by 270 degrees",dst2);
-
-	HLS[0] += 90;					// Rotate hue 90 degrees again. total 360.
-	cv::merge(HLS, dst2);
-	cvtColor(dst2, dst2, CV_HLS2BGR);
-	cv::namedWindow("Hue rotated by 360 degrees"); cv::imshow("Hue rotated by 360 degrees",dst2);
-
-	HLS[0] += 90;					// Rotate hue 90 degrees again. total 360+90.
-	cv::merge(HLS, dst2);
-	cvtColor(dst2, dst2, CV_HLS2BGR);
-	cv::namedWindow("Hue rotated by 360+90 degrees"); cv::imshow("Hue rotated by 360+90 degrees",dst2);
+	Mat vHSV_Origin[3];
+	Mat vHSV_Ach[3];
 	
-#endif
-// 음수연산을 하는경우 에러메시지와 함께 종료.
-#if 0
-	imageHLS[0] -= 90;					// Rotate hue 90 degrees in clockwise. must be the same as +270.
-	cv::merge(imageHLS, dst2);
-	cvtColor(dst2, dst2, CV_HLS2BGR);
-	cv::namedWindow("Hue rotated by -90 degrees"); cv::imshow("Hue rotated by -90 degrees",dst2);
+	// 마우스로 클릭한 픽셀 좌표
+	static Point point;
 
-	imageHLS[0] -= 90;					// Rotate hue 90 degrees again in clockwise. must be the same as +180.
-	cv::merge(imageHLS, dst2);
-	//cvtColor(dst2, dst2, CV_HLS2BGR);
-	cv::namedWindow("Hue rotated by -180 degrees"); cv::imshow("Hue rotated by -180 degrees",dst2);
-#endif
+	cvtColor(src, src, CV_BGR2HSV);
+
+	split(src, vHSV_Origin);
+	split(src, vHSV_Ach);
+
+	// Color to Achromatic
+
+	vHSV_Ach[1] = 0;
+
+	// 새로운 위치를 클릭하면 point의 값을 갱신
+	if(point != ::mouse_click_point)
+	{
+		point = mouse_click_point;
+		cout << "갱신된 point 값 : " << point << endl;
+	}
+
+	// 클릭한 픽셀의 Hue 값
+	int clicked_hue = vHSV_Origin[0].at<int>(point);
+
+	if( point.x > 0 && point.y > 0)
+	{
+		for(int height = 0; height < img.size().height; height++)
+		{
+			for(int width = 0; width < img.size().width; width++)
+			{
+				// 현재 픽셀의 Hue 값이 clicked_hue 와 10이상 차이가 나지 않는다면
+				// 원래 채도로 되돌린다.
+				if( (vHSV_Origin[0].at<int>(height, width) >= std::max(clicked_hue-200000000, 0) )  &&
+					(vHSV_Origin[0].at<int>(height, width) < clicked_hue+300000000 ) 
+					)
+				{
+					vHSV_Ach[1].at<int>(height,width) = vHSV_Origin[1].at<int>(height,width);
+				}
+			}
+		}
+	}
+
+	cout << "2중 for문 종료" << endl;
+
 	
-	return img;
+	Mat dst;
+
+	merge(vHSV_Ach, 3, dst);
+
+	cvtColor(dst, dst, CV_HSV2BGR);
+
+	return dst;
 }
 
 void UpdateLut( Mat &lut, const int low, const int high )
