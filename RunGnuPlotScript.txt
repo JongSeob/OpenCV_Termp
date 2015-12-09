@@ -1,0 +1,6 @@
+set xlabel "gray pixel data"
+set ylabel "pixel count"
+set boxwidth 1
+set style fill solid
+plot [0:255] 'E:/dip_termp/histogram_data.dat' with boxes
+pause mouse

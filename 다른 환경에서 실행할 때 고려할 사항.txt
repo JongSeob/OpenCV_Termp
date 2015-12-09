@@ -1,0 +1,8 @@
+1. main.cpp의 기호상수 OUTPUT_PATH 값을 알맞은 값으로 변경해야한다.
+
+2. img_proc.cpp의 기호상수 GPLOT_PATH 값을 알맞은 값으로 변경, 설치되지 않았을 경우 설치해준다. 
+
+3. img_proc.cpp의 기호상수 GPLOT_DRAW.....FILE_PATH 도 역시 실제 경로로 설정.
+
+4. RunGnuPlotScript.txt 파일에서  histogram_data.dat 파일의 경로를 환경에 맞게 재설정.
+
