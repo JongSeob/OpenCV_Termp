@@ -48,9 +48,26 @@ cv::Mat GetHistEqualOnColorImg( const Mat &img )
 	{
 		cout << "Draw Histogram" << endl;
 
-// 		FILE * fp = fopen("../histogram_data.dat", "w");
-// 
-// 		fclose(fp);
+		// 픽셀값의 갯수를 저장할 배열.
+		int histogram[256] = {0, };
+		
+		// 각 픽셀값의 갯수를 센다.
+		for(int row = 0; row < gray.size().height; row++)
+		{
+			for(int column = 0; column < gray.size().width; column++)
+			{
+				histogram[gray.at<uchar>(row, column)]++;
+			}
+		}
+
+		// GnuPlot을 이용해 히스토그램으로 출력할 데이터파일
+ 		FILE * fp = fopen("../histogram_data.dat", "w");
+
+		// 픽셀값 픽셀갯수
+		for(int i = 0; i < 256; i++)
+			fprintf(fp, "%d %d\n", i, histogram[i]);
+ 
+ 		fclose(fp);
 		
 		ShellExecute(NULL, L"open", GPLOT_PATH, \
 			GPLOT_DRAW_HISTOGRAM_SCRIPT_FILE_PATH, NULL, SW_SHOWNORMAL);
@@ -268,8 +285,8 @@ cv::Mat GetAchromaticImg( const Mat &img )
 				// 원래 채도로 되돌린다.
 				if( (vHSV_Origin[0].at<uchar>(height, width) >= max(clicked_hue - margin, 0) )			   &&
 					(vHSV_Origin[0].at<uchar>(height, width) <  min(clicked_hue + margin, 255) )		   &&
-					(vHSV_Origin[1].at<uchar>(height, width) >= max(clicked_saturation - sigma - 20, 0) )  &&
-					(vHSV_Origin[1].at<uchar>(height, width) <  min(clicked_saturation + sigma + 20, 255) )
+					(vHSV_Origin[1].at<uchar>(height, width) >= max(clicked_saturation - sigma - margin, 0) )  &&
+					(vHSV_Origin[1].at<uchar>(height, width) <  min(clicked_saturation + sigma + margin, 255) )
 					)
 				{					
 					vHSV_Ach[1].at<uchar>(height,width) = vHSV_Origin[1].at<uchar>(height,width);

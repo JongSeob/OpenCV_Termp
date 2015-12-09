@@ -143,7 +143,7 @@ int main(void)
 	trackbar_Achromatic.windowName = "camera";
 	trackbar_Achromatic.trackbarName = "Margin";
 	trackbar_Achromatic.defaultValue = margin;
-	trackbar_Achromatic.maxValue = 15;
+	trackbar_Achromatic.maxValue = 30;
 	
 	Menu();
 
