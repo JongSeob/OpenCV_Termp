@@ -53,9 +53,9 @@ cv::Mat GetUnsharpImg( const Mat &img )
 	Mat src = img;
 	// Initialize common variables and objects over the test method sections.
 	int ksize = 31;					// Kernel Size. must be odd positive.  Big kernel size causes no problem for simulation. It affects on time during real time implementation.
-	float	sigma = 12.0;			// Test for the various sigmas, eg. 3, 7, ... etc. Can you tell the effect of the magnitude of sigma? It affects on local or global aspect of emphasis.
+	float	sigma = (float)(::sigma);//12.0;			// Test for the various sigmas, eg. 3, 7, ... etc. Can you tell the effect of the magnitude of sigma? It affects on local or global aspect of emphasis.
 	float	scale = 2.0;			// Test for the various scales, eg. 3, 7, etc.  Can you tell the effect of scale? It affects on the strength of emphasis.
-
+	
 	cv::Mat Blur, dst, dstPositive, dstNegative;
 	cv::GaussianBlur(src, Blur, cv::Size(ksize, ksize), sigma);		// kernel size = ksize
 	//cv::namedWindow("GaussianBlur");		cv::imshow("GaussianBlur", Blur); 
@@ -147,22 +147,79 @@ cv::Mat GetGammaChangedImg( const Mat &img )
 	
 	src.convertTo(src, CV_32FC3, 1.0 / 255.0);
 	
-	cv::pow(src, 1 / gamma, dst);
+	cv::pow(src, gamma, dst);
 	
 	dst.convertTo(dst, CV_8UC3, 255);
 
 	return dst;
 }
 
+int GetSaturationSigma( const Mat &img )
+{
+	Mat src;	
+	img.copyTo(src);
+
+	Mat vHSV[3];
+	
+	cvtColor(src, src, CV_BGR2HSV);
+	
+	split(src, vHSV);
+
+	int average = 0; // 평균
+	int sum = 0;     // 합계	
+	int differ = 0; // 편차
+	double variance = 0; // 분산
+	double sigma = 0;  // 표준편차
+	int countOfPixel = src.size().width * src.size().height; // 총 개수
+	
+	// Saturation 값의 평균을 구한다. //
+	for(int row = 0; row < src.size().height; row++)
+	{
+		for (int column = 0; column < src.size().width; column++)
+		{
+			sum += vHSV[1].at<uchar>(row, column);
+		}
+	}
+
+	average = sum / countOfPixel;
+
+
+	// 평균 값을 이용해 분산을 구한다. //
+
+	sum = 0;
+
+	for(int row = 0; row < src.size().height; row++)
+	{
+		for (int column = 0; column < src.size().width; column++)
+		{
+			differ = vHSV[1].at<uchar>(row, column) - average; // 각 픽셀의 편차를 구한다.
+			sum += differ * differ;							   // 편차 제곱들의 합을 구한다.
+		}
+	}
+
+	// 편차 제곱의 평균(분산) 을 구한다.
+	variance = sum / countOfPixel;
+
+	// 분산의 제곱근(표준편차)를 구한다.
+	sigma = sqrt(variance);
+
+	return (int)sigma;
+}
+
 cv::Mat GetAchromaticImg( const Mat &img )
 {
-	cv::Mat src = img;
+	cv::Mat src;
+	img.copyTo(src);
 	
 	Mat vHSV_Origin[3];
 	Mat vHSV_Ach[3];
 	
 	// 마우스로 클릭한 픽셀 좌표
 	static Point point;
+
+	// ROI 영역 = 마우스 포인터를 중심으로 한 30x30 사각형
+	static Rect ROI_rect(img.size().width / 2, img.size().height / 2, 10, 10);
+	static Mat ROI_img = img(ROI_rect);
 
 	cvtColor(src, src, CV_BGR2HSV);
 
@@ -173,8 +230,9 @@ cv::Mat GetAchromaticImg( const Mat &img )
 
 	vHSV_Ach[1] = 0;
 
-	// 클릭한 픽셀의 Hue 값
+	// 클릭한 픽셀의 Hue, Saturation 값
 	static int clicked_hue;
+	static int clicked_saturation;
 
 	// 새로운 위치를 클릭하면 point의 값을 갱신
 	if(point != ::mouse_click_point)
@@ -182,11 +240,33 @@ cv::Mat GetAchromaticImg( const Mat &img )
 		point = mouse_click_point;
 		cout << "갱신된 point 값 : " << point << endl;
 		
-		// 클릭한 픽셀의 Hue 값
+		// 클릭한 픽셀의 Hue, Saturation 값
 		clicked_hue = vHSV_Origin[0].at<uchar>(point);
+		clicked_saturation = vHSV_Origin[1].at<uchar>(point);
 
-		cout << "클릭한 픽셀의 Hue 값 :" << (int)clicked_hue << endl;
+		cout << "클릭한 픽셀의 Hue 값 :" << (unsigned int)clicked_hue << endl;
+
+		ROI_rect.width = 50;
+		ROI_rect.height = 50;
+		ROI_rect.x = max(point.x-(ROI_rect.width/2 -1), 0);
+		ROI_rect.y = max(point.y-(ROI_rect.height/2 -1), 0);
+
+		// 사각형이 이미지를 벗어나는 경우 이미지 안쪽으로 들어오도록 좌표를 이동한다.
+		ROI_rect.x = ((ROI_rect.x + ROI_rect.width) >= src.size().width) ? (src.size().width - ROI_rect.width) : ROI_rect.x;
+		ROI_rect.y = ((ROI_rect.y + ROI_rect.height) >= src.size().height) ? (src.size().height - ROI_rect.height) : ROI_rect.y;
+
+		cout << "rect = " << ROI_rect << endl;
+		
+		ROI_img = img(ROI_rect);
+
+		imshow("ROI", ROI_img);
 	}
+
+	int sigma = 0;
+
+	sigma = GetSaturationSigma(ROI_img);
+	
+	cout << "sigma = " << sigma << endl;
 
 	if( point.x > 0 && point.y > 0)
 	{
@@ -196,11 +276,14 @@ cv::Mat GetAchromaticImg( const Mat &img )
 			{
 				// 현재 픽셀의 Hue 값이 clicked_hue 와 10이상 차이가 나지 않는다면
 				// 원래 채도로 되돌린다.
-				if( (vHSV_Origin[0].at<uchar>(height, width) >= std::max(clicked_hue-5, 0) )  &&
-					(vHSV_Origin[0].at<uchar>(height, width) < std::min(clicked_hue+5, 255) ) 
+				if( (vHSV_Origin[0].at<uchar>(height, width) >= std::max(clicked_hue - 5, 0) )			   &&
+					(vHSV_Origin[0].at<uchar>(height, width) <  std::min(clicked_hue + 5, 255) )		   &&
+					(vHSV_Origin[1].at<uchar>(height, width) >= std::max(clicked_saturation - sigma - 30, 0) )  &&
+					(vHSV_Origin[1].at<uchar>(height, width) <  std::min(clicked_saturation + sigma + 30, 255) )
 					)
-				{
-					vHSV_Ach[1].at<int>(height,width) = vHSV_Origin[1].at<int>(height,width);
+				{					
+					vHSV_Ach[1].at<uchar>(height,width) = vHSV_Origin[1].at<uchar>(height,width);
+
 				}
 			}
 		}
@@ -242,14 +325,19 @@ void UpdateLut( Mat &lut, const int low, const int high )
 cv::Mat Imadjust( const Mat &src, Mat &dst, const double input_range[], const double output_range[], const double gamma /*= 1*/ )
 {
 	if(input_range[0] < 0 || input_range[0] > 1 ||
-		input_range[1] < 0 || input_range[1] > 1 ||
+		input_range[1] <= input_range[0] || input_range[1] > 1 ||
 		output_range[0] < 0 || output_range[0] > 1 ||
-		output_range[1] < 0 || output_range[1] > 1		
+		output_range[1] <= output_range[0] || output_range[1] > 1		
 		)
 	{
 		cout << "invalid range" << endl;
 	}
-	
+
+	Mat lut(1, 256, CV_32FC1);
+
+	for(int i = 0; i < 256; i++)
+
+			
 	LUT(src, histSretchLut, dst);
 
 	// intensity transform
@@ -266,4 +354,5 @@ cv::Mat Imadjust( const Mat &src, Mat &dst, const double input_range[], const do
 */
 	return dst;
 }
+
 

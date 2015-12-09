@@ -33,7 +33,7 @@ VideoCapture * global_cap;
 int stretchMin = 30;
 int stretchMax = 180;
 double gamma = 1.0;
-int sigma;
+int sigma = 12;
 int margin;
 
 extern Mat histSretchLut;
@@ -79,6 +79,8 @@ int main(void)
 	//////////////////////////////////////////////////////////////////////////
 
 	OpenCamera(cap, 0);
+
+	//cap.open("D:/dip/images/the_return_of_the_king.avi");
 
 	Mat frame; // 영상에서 읽어낸 프레임을 저장할 객체
 
@@ -131,10 +133,10 @@ int main(void)
 
 	TrackbarInfo trackbar_Unsharp;
 
-	trackbar_Unsharp.windowName = "Unsharp Masking Sigma";;
+	trackbar_Unsharp.windowName = "camera";
 	trackbar_Unsharp.trackbarName = "Sigma";
 	trackbar_Unsharp.defaultValue = sigma;
-	trackbar_Unsharp.maxValue = 10;	
+	trackbar_Unsharp.maxValue = 30;	
 
 	// Initialize Lut
 	UpdateLut(histSretchLut, stretchMin, stretchMax);
@@ -225,6 +227,7 @@ int main(void)
 			break;		
 		case '4'  : video_proc = VP_UNSHARP;		// Unsharp Masking
 			cout << "Unsharp Masking" << endl;
+			CreateTrackbar(trackbar_Unsharp, onTrackbarUnsharpSigma);
 			break;		
 		case '5'  : video_proc = VP_ACHROMATIC;		// 특정 hue만 취하고 나머지는 무채색
 			cout << "Achromatic Color" << endl;

@@ -73,7 +73,9 @@ void onTrackbarGamma( int pos, void * userdata /*= 0*/ )
 
 void onTrackbarUnsharpSigma( int pos, void * userdata /*= 0*/ )
 {
-	VideoCapture &cap = *global_cap;
+	sigma = pos;
+
+	cout << "sigma = " << sigma << endl;
 }
 
 void onTrackbarHueMargin( int pos, void * userdata /*= 0*/ )
