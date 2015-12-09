@@ -37,11 +37,13 @@ cv::Mat GetHistEqualOnColorImg( const Mat &img )
 	Lout.convertTo(Lout,CV_32FC1);			// 32 bit data
 
 	double gamma = 1.0;				// No strength control
-	cv::divide(vCin[0], Lin, tmp);		cv::pow(tmp, gamma, tmp); cv::multiply(Lout, tmp, vCout[0]);
-	cv::divide(vCin[1], Lin, tmp);		cv::pow(tmp, gamma, tmp); cv::multiply(Lout, tmp, vCout[1]);
-	cv::divide(vCin[2], Lin, tmp);		cv::pow(tmp, gamma, tmp); cv::multiply(Lout, tmp, vCout[2]);
+
+	cv::divide(vCin[0], Lin, tmp); cv::multiply(Lout, tmp, vCout[0]);
+	cv::divide(vCin[1], Lin, tmp); cv::multiply(Lout, tmp, vCout[1]);
+	cv::divide(vCin[2], Lin, tmp); cv::multiply(Lout, tmp, vCout[2]);
 
 	cv::merge(vCout, 3, dst);			// Merge 3 planes to a Mat.
+
 	dst.convertTo(dst,CV_8UC3);
 	
 	if(key == 'h' || key == 'H')
@@ -273,8 +275,6 @@ cv::Mat GetAchromaticImg( const Mat &img )
 
 	sigma = GetSaturationSigma(ROI_img);
 	
-	cout << "sigma = " << sigma << endl;
-
 	if( point.x > 0 && point.y > 0)
 	{
 		for(int height = 0; height < img.size().height; height++)

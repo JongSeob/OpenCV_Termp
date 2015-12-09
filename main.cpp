@@ -14,6 +14,13 @@
 
 #define OUTPUT_PATH "E:/dip_termp/"
 
+char OutputOriginFilePath[6][100] = {OUTPUT_PATH ,			// output file
+	OUTPUT_PATH ,
+	OUTPUT_PATH ,
+	OUTPUT_PATH ,
+	OUTPUT_PATH ,
+	OUTPUT_PATH }; 
+
 char OutputFilePath[6][100] = {OUTPUT_PATH ,				// output file
 	OUTPUT_PATH ,
 	OUTPUT_PATH ,
@@ -27,6 +34,13 @@ const char OutputFileName[6][50]  = {"video_none.avi" ,				// output file
 	"video_gamma.avi" ,
 	"video_unsharp.avi" ,
 	"video_achromatic.avi" };
+
+const char OutputOriginFileName[6][50]  = {"video_none_origin.avi" ,				// output file
+	"video_hist_equal_origin.avi" ,
+	"video_hist_stretch_origin.avi" ,
+	"video_gamma_origin.avi" ,
+	"video_unsharp_origin.avi" ,
+	"video_achromatic_origin.avi" };
 
 VideoCapture * global_cap;
 
@@ -61,8 +75,10 @@ int main(void)
 	//////////////////////////////////////////////////////////////////////////
 
 	for(int i=0; i < 6; i++)
+	{
 		strcat_s(OutputFilePath[i], OutputFileName[i]);	
-
+		strcat_s(OutputOriginFilePath[i], OutputOriginFileName[i]);
+	}
 
 	//////////////////////////////////////////////////////////////////////////
 	// 3. 윈도우, 마우스 핸들러 생성
@@ -80,6 +96,7 @@ int main(void)
 
 	//cap.open("D:/dip/images/the_return_of_the_king.avi");
 
+	Mat frame_origin;
 	Mat frame; // 영상에서 읽어낸 프레임을 저장할 객체
 
 	CvSize FrameSize;
@@ -93,7 +110,8 @@ int main(void)
 	// 5. 영상 저장을 위한 변수 선언.
 	//////////////////////////////////////////////////////////////////////////
 
-	VideoWriter wrt;     // 관심구간을 제외한 비디오를 저장할 객체.
+	VideoWriter wrt_origin; // 영상처리 전 원본 영상 저장
+	VideoWriter wrt_result; // 처리된 영상 저장
 
 #define	CODEC CV_FOURCC('D', 'I', 'V', 'X')
 
@@ -117,7 +135,7 @@ int main(void)
 	trackbar_HistStretch_Max.trackbarName = "Max(0.1)";
 	trackbar_HistStretch_Max.defaultValue = (int)(stretchMax*10);
 	trackbar_HistStretch_Max.maxValue = 10;
-	
+
 	// Gamma Change Value 
 
 	TrackbarInfo trackbar_Gamma;
@@ -126,7 +144,7 @@ int main(void)
 	trackbar_Gamma.trackbarName = "0.1 units ";
 	trackbar_Gamma.defaultValue = (int)(gamma*10);
 	trackbar_Gamma.maxValue = 30;
-	
+
 	// Unsharp Masking Sigma
 
 	TrackbarInfo trackbar_Unsharp;
@@ -144,7 +162,7 @@ int main(void)
 	trackbar_Achromatic.trackbarName = "Margin";
 	trackbar_Achromatic.defaultValue = margin;
 	trackbar_Achromatic.maxValue = 30;
-	
+
 	Menu();
 
 	while(1)
@@ -158,6 +176,8 @@ int main(void)
 				cout << "Camera ShutDown" << endl;
 				exit(1);
 			}
+
+			frame.copyTo(frame_origin);
 
 			switch (video_proc)
 			{
@@ -175,7 +195,12 @@ int main(void)
 			}
 
 			if(video_save_flag == true)
-				wrt.write(frame);
+			{
+				cout << "wjiwo" << endl;
+
+				wrt_origin.write(frame_origin);
+				wrt_result.write(frame);
+			}
 
 			imshow("camera", frame);
 		}
@@ -183,7 +208,7 @@ int main(void)
 		//////////////////////////////////////////////////////////////////////////
 		// Processing Key Input
 		//////////////////////////////////////////////////////////////////////////
-		
+
 		//key = (int)waitKey(1000.0/(fps*speed));	// 동영상의 fps와 비슷한 속도로 영상을 출력하기 위해 읽는 속도를 조절.
 		key = (int)waitKey(1);		
 
@@ -199,7 +224,8 @@ int main(void)
 			// 새로운 이미지 저장을 위해 기존의 저장을 종료
 			if(video_save_flag == true)
 			{
-				wrt.release();
+				wrt_result.release();
+				wrt_origin.release();
 				cout << "VideoWrite finished." << endl;
 				video_save_flag = false;
 			}
@@ -238,13 +264,16 @@ int main(void)
 		case ' '  : video_play = (video_play == true) ? false : true; break;
 		case 's'  : if(video_save_flag == false)
 					{
-						wrt.open(OutputFilePath[video_proc], CODEC, fps, FrameSize);
+						wrt_result.open(OutputFilePath[video_proc], CODEC, fps, FrameSize);
+						wrt_origin.open(OutputOriginFilePath[video_proc], CODEC, fps, FrameSize);
+
 						cout << "VideoWrite start." << endl;
 						video_save_flag = true;
 					}
 					else
 					{
-						wrt.release();
+						wrt_origin.release();
+						wrt_result.release();
 						cout << "VideoWrite finished." << endl;
 						video_save_flag = false;
 					}
