@@ -3,9 +3,10 @@
 #include "func.h"
 #include <Windows.h>
 
+// GPLOT_PATH : GnuPlot 실행파일 절대경로
+// GPLOT_DRAW_HISTOGRAM_SCRIPT_FILE_PATH : 실행할 GnuPlot 명령어를 가지고 있는 스크립트 파일
 #define GPLOT_PATH									L"C:\\Program Files\\gnuplot\\bin\\wgnuplot.exe"
-#define GPLOT_DRAW_HISTOGRAM_SCRIPT_FILE_PATH		L"C:\\Users\\YJS\\Desktop\\QuitHistScript.txt"
-#define GPLOT_QUIT_GPLOT_SCRIPT_FILE_PATH			L"C:\\Users\\YJS\\Desktop\\RunThisScript.txt"
+#define GPLOT_DRAW_HISTOGRAM_SCRIPT_FILE_PATH		L"E:\\dip_termp\\RunGnuPlotScript.txt"
 
 // main.cpp
 extern int stretchMin;
@@ -14,7 +15,11 @@ extern double gamma;
 extern int sigma;
 extern int margin;
 
+extern int key;
+
 extern Point mouse_click_point; // func.cpp
+
+
 
 Mat histSretchLut(1, 256, CV_8UC1);
 
@@ -24,9 +29,7 @@ cv::Mat GetHistEqualOnColorImg( const Mat &img )
 	cv::Mat dst, gray, tmp;
 	cv::Mat Lin, Lout, Cin, Cout;  
 	cv::Mat vCin[3], vCout[3];     // vectorCin/out
-
-	bool isGnuPlotOn = false
-
+	
 	// Convert to gray and Apply Histogram Equalization
 	cvtColor(img, gray, CV_BGR2GRAY);
 	equalizeHist(gray, Lout);
@@ -51,19 +54,18 @@ cv::Mat GetHistEqualOnColorImg( const Mat &img )
 
 	cv::merge(vCout, 3, dst);			// Merge 3 planes to a Mat.
 	dst.convertTo(dst,CV_8UC3);
-
-	if(isGnuPlotOn == true)
+	
+	if(key == 'h' || key == 'H')
 	{
+		cout << "Draw Histogram" << endl;
+
+// 		FILE * fp = fopen("../histogram_data.dat", "w");
+// 
+// 		fclose(fp);
+		
 		ShellExecute(NULL, L"open", GPLOT_PATH, \
-			GPLOT_QUIT_GPLOT_SCRIPT_FILE_PATH, NULL, SW_SHOWNORMAL);
+			GPLOT_DRAW_HISTOGRAM_SCRIPT_FILE_PATH, NULL, SW_SHOWNORMAL);
 	}
-	else
-	{
-		isGnuPlotOn = true;
-	}
-
-	ShellExecute(NULL, L"open", GPLOT_PATH, \
-		GPLOT_DRAW_HISTOGRAM_SCRIPT_FILE_PATH, NULL, SW_SHOWNORMAL);
 	
 	return dst;
 }
@@ -72,48 +74,22 @@ cv::Mat GetUnsharpImg( const Mat &img )
 {
 	Mat src = img;
 	// Initialize common variables and objects over the test method sections.
-	int ksize = 31;					// Kernel Size. must be odd positive.  Big kernel size causes no problem for simulation. It affects on time during real time implementation.
+	
+	static int ksize_arr[7] = {11, 19, 31, 41, 53, 65, 71};
+
 	float	sigma = (float)(::sigma);//12.0;			// Test for the various sigmas, eg. 3, 7, ... etc. Can you tell the effect of the magnitude of sigma? It affects on local or global aspect of emphasis.
 	float	scale = 2.0;			// Test for the various scales, eg. 3, 7, etc.  Can you tell the effect of scale? It affects on the strength of emphasis.
-	
+	int ksize = ksize_arr[ (int)(sigma / 5) ];
+		
 	cv::Mat Blur, dst, dstPositive, dstNegative;
 	cv::GaussianBlur(src, Blur, cv::Size(ksize, ksize), sigma);		// kernel size = ksize
-	//cv::namedWindow("GaussianBlur");		cv::imshow("GaussianBlur", Blur); 
-
+	
 	src.convertTo(src,CV_16S);
 	Blur.convertTo(Blur, CV_16S);
-
-#if 0
-	//1) Show high frequence components, Unsharp mask
-	// Unsharp mask = original image - Bluurred image
-	// The unsharp mask is identified later as a negative 2nd derivative of the origonal image.
-	dst = scale * (src-Blur);						// Unsharp mask
-	dst.convertTo(dstPositive,CV_8U,1);
-	dst.convertTo(dstNegative,CV_8U,-1);			// dstNegative contains Negative part of dst.
-
-	cv::namedWindow("Positive Part of Unsharp Mask(original-Blur)"); 	cv::imshow("Positive Part of Unsharp Mask(original-Blur)",dstPositive);
-	cv::namedWindow("Negative Part of Unsharp Mask(original-Blur)"); 	cv::imshow("Negative Part of Unsharp Mask(original-Blur)",dstNegative);
-#endif
-
-
-	// 2) The unsharp mask is (original-Blur). Add it to original image.
+	
 	dst = src + scale * (src-Blur);
 	dst.convertTo(dstPositive,CV_8U,1);
 	dst.convertTo(dstNegative,CV_8U,-1);			// dstNegative contains Negative part of dst.
-
-	//cv::namedWindow("Positive: original+UnsharpMask(original-Blur)"); 	cv::imshow("Positive: original+UnsharpMask(original-Blur)",dstPositive);
-	//cv::namedWindow("Negative: original+UnsharpMask(original-Blur)"); 	cv::imshow("Negative: original+UnsharpMask(original-Blur)",dstNegative);
-
-#if 0
-	// 3) If we subtract the 2nd derivative from the original image, the output image is sharpened. 
-	// Through trial and error, I found that the (Blur-original) is the 2nd derivative of the original image.
-	dst = src - scale * (Blur-src);
-	dst.convertTo(dstPositive,CV_8U,1);
-	dst.convertTo(dstNegative,CV_8U,-1);			// dstNegative contains Negative part of dst.
-
-	cv::namedWindow("Positive: original-2ndDerivative(Blur-original)"); 	cv::imshow("Positive: original-2ndDerivative(Blur-original)",dstPositive);
-	cv::namedWindow("Negative: original-2ndDerivative(Blur-original)"); 	cv::imshow("Negative: original-2ndDerivative(Blur-original)",dstNegative);
-#endif
 
 	return dstPositive;	
 }
@@ -278,8 +254,6 @@ cv::Mat GetAchromaticImg( const Mat &img )
 		cout << "rect = " << ROI_rect << endl;
 		
 		ROI_img = img(ROI_rect);
-
-		imshow("ROI", ROI_img);
 	}
 
 	int sigma = 0;
@@ -296,10 +270,10 @@ cv::Mat GetAchromaticImg( const Mat &img )
 			{
 				// 현재 픽셀의 Hue 값이 clicked_hue 와 10이상 차이가 나지 않는다면
 				// 원래 채도로 되돌린다.
-				if( (vHSV_Origin[0].at<uchar>(height, width) >= max(clicked_hue - 5, 0) )			   &&
-					(vHSV_Origin[0].at<uchar>(height, width) <  min(clicked_hue + 5, 255) )		   &&
-					(vHSV_Origin[1].at<uchar>(height, width) >= max(clicked_saturation - sigma - 30, 0) )  &&
-					(vHSV_Origin[1].at<uchar>(height, width) <  min(clicked_saturation + sigma + 30, 255) )
+				if( (vHSV_Origin[0].at<uchar>(height, width) >= max(clicked_hue - margin, 0) )			   &&
+					(vHSV_Origin[0].at<uchar>(height, width) <  min(clicked_hue + margin, 255) )		   &&
+					(vHSV_Origin[1].at<uchar>(height, width) >= max(clicked_saturation - sigma - 20, 0) )  &&
+					(vHSV_Origin[1].at<uchar>(height, width) <  min(clicked_saturation + sigma + 20, 255) )
 					)
 				{					
 					vHSV_Ach[1].at<uchar>(height,width) = vHSV_Origin[1].at<uchar>(height,width);

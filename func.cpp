@@ -80,7 +80,7 @@ void onTrackbarUnsharpSigma( int pos, void * userdata /*= 0*/ )
 
 void onTrackbarHueMargin( int pos, void * userdata /*= 0*/ )
 {
-	VideoCapture &cap = *global_cap;
+	margin = pos;
 }
 
 int CreateTrackbar( TrackbarInfo &trackbar, TrackbarCallback onChange /*= 0*/ )

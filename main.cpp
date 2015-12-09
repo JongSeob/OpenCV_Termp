@@ -34,7 +34,9 @@ int stretchMin = 30;
 int stretchMax = 180;
 double gamma = 1.0;
 int sigma = 12;
-int margin;
+int margin = 5;
+
+int key;
 
 extern Mat histSretchLut;
 
@@ -138,6 +140,15 @@ int main(void)
 	trackbar_Unsharp.defaultValue = sigma;
 	trackbar_Unsharp.maxValue = 30;	
 
+	// Optional Achromatic Image
+
+	TrackbarInfo trackbar_Achromatic;
+
+	trackbar_Achromatic.windowName = "camera";
+	trackbar_Achromatic.trackbarName = "Margin";
+	trackbar_Achromatic.defaultValue = margin;
+	trackbar_Achromatic.maxValue = 30;
+
 	// Initialize Lut
 	UpdateLut(histSretchLut, stretchMin, stretchMax);
 
@@ -179,9 +190,7 @@ int main(void)
 		//////////////////////////////////////////////////////////////////////////
 		// Processing Key Input
 		//////////////////////////////////////////////////////////////////////////
-
-		int key;
-
+		
 		//key = (int)waitKey(1000.0/(fps*speed));	// 동영상의 fps와 비슷한 속도로 영상을 출력하기 위해 읽는 속도를 조절.
 		key = (int)waitKey(1);		
 
@@ -231,6 +240,7 @@ int main(void)
 			break;		
 		case '5'  : video_proc = VP_ACHROMATIC;		// 특정 hue만 취하고 나머지는 무채색
 			cout << "Achromatic Color" << endl;
+			CreateTrackbar(trackbar_Achromatic, onTrackbarHueMargin);
 			break;		
 		case ' '  : video_play = (video_play == true) ? false : true; break;
 		case 's'  : if(video_save_flag == false)
