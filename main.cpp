@@ -30,17 +30,13 @@ const char OutputFileName[6][50]  = {"video_none.avi" ,				// output file
 
 VideoCapture * global_cap;
 
-int stretchMin = 30;
-int stretchMax = 180;
+double stretchMin = 0.2;
+double stretchMax = 0.8;
 double gamma = 1.0;
 int sigma = 12;
 int margin = 5;
 
 int key;
-
-extern Mat histSretchLut;
-
-//Mat lut(1, 256, CV_8UC1); // 1 x 256 크기의 Mat 클래스. Imadjust에서 사용하기 위한 LUT 정보를 미리 저장하고 있는다.
 
 void Menu();
 
@@ -111,16 +107,16 @@ int main(void)
 	TrackbarInfo trackbar_HistStretch_Min;
 
 	trackbar_HistStretch_Min.windowName = "camera";
-	trackbar_HistStretch_Min.trackbarName = "Min";
-	trackbar_HistStretch_Min.defaultValue = stretchMin;
-	trackbar_HistStretch_Min.maxValue = 255;
+	trackbar_HistStretch_Min.trackbarName = "Min(0.1)";
+	trackbar_HistStretch_Min.defaultValue = (int)(stretchMin*10);
+	trackbar_HistStretch_Min.maxValue = 10;
 
 	TrackbarInfo trackbar_HistStretch_Max;
 
 	trackbar_HistStretch_Max.windowName = "camera";
-	trackbar_HistStretch_Max.trackbarName = "Max";
-	trackbar_HistStretch_Max.defaultValue = stretchMax;
-	trackbar_HistStretch_Max.maxValue = 255;
+	trackbar_HistStretch_Max.trackbarName = "Max(0.1)";
+	trackbar_HistStretch_Max.defaultValue = (int)(stretchMax*10);
+	trackbar_HistStretch_Max.maxValue = 10;
 	
 	// Gamma Change Value 
 
@@ -128,7 +124,7 @@ int main(void)
 
 	trackbar_Gamma.windowName = "camera";
 	trackbar_Gamma.trackbarName = "0.1 units ";
-	trackbar_Gamma.defaultValue = gamma*10;
+	trackbar_Gamma.defaultValue = (int)(gamma*10);
 	trackbar_Gamma.maxValue = 30;
 	
 	// Unsharp Masking Sigma
@@ -147,11 +143,8 @@ int main(void)
 	trackbar_Achromatic.windowName = "camera";
 	trackbar_Achromatic.trackbarName = "Margin";
 	trackbar_Achromatic.defaultValue = margin;
-	trackbar_Achromatic.maxValue = 30;
-
-	// Initialize Lut
-	UpdateLut(histSretchLut, stretchMin, stretchMax);
-
+	trackbar_Achromatic.maxValue = 15;
+	
 	Menu();
 
 	while(1)

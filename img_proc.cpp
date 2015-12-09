@@ -9,8 +9,8 @@
 #define GPLOT_DRAW_HISTOGRAM_SCRIPT_FILE_PATH		L"E:\\dip_termp\\RunGnuPlotScript.txt"
 
 // main.cpp
-extern int stretchMin;
-extern int stretchMax;
+extern double stretchMin;
+extern double stretchMax;
 extern double gamma;
 extern int sigma;
 extern int margin;
@@ -18,10 +18,6 @@ extern int margin;
 extern int key;
 
 extern Point mouse_click_point; // func.cpp
-
-
-
-Mat histSretchLut(1, 256, CV_8UC1);
 
 cv::Mat GetHistEqualOnColorImg( const Mat &img )
 {
@@ -40,13 +36,6 @@ cv::Mat GetHistEqualOnColorImg( const Mat &img )
 	gray.convertTo(Lin,CV_32FC1);			// 32 bit data
 	Lout.convertTo(Lout,CV_32FC1);			// 32 bit data
 
-	// 아래 연산은 안되는 듯함. runtime 오류 *** 검토 필요. 
-	//vCout[0] = Lout * (vCin[0]/Lin); 				//vCout[1] = Lout * (vCin[1]/Lin);				//vCout[2] = Lout * (vCin[2]/Lin);
-
-	//double gamma = 0.01;			// 흑백으로 칼라 강도가 약해짐.
-	//double gamma = 5.01;			// 칼라 강도가 매우 강해짐.
-	//double gamma = 1.5;				// 선명한 칼라.
-	//double gamma = 0.6;				// 약한 칼라
 	double gamma = 1.0;				// No strength control
 	cv::divide(vCin[0], Lin, tmp);		cv::pow(tmp, gamma, tmp); cv::multiply(Lout, tmp, vCout[0]);
 	cv::divide(vCin[1], Lin, tmp);		cv::pow(tmp, gamma, tmp); cv::multiply(Lout, tmp, vCout[1]);
@@ -73,7 +62,6 @@ cv::Mat GetHistEqualOnColorImg( const Mat &img )
 cv::Mat GetUnsharpImg( const Mat &img )
 {
 	Mat src = img;
-	// Initialize common variables and objects over the test method sections.
 	
 	static int ksize_arr[7] = {11, 19, 31, 41, 53, 65, 71};
 
@@ -110,7 +98,10 @@ cv::Mat GetHistStretch( const Mat &img )
 	
 	cvtColor(src, gray, CV_BGR2GRAY);
 	
-	LUT(gray, histSretchLut, L_out);
+	double input_range[2] = {stretchMin, stretchMax};
+	double output_range[2] = {0, 1};
+
+	Imadjust(gray, L_out, input_range, output_range, 1);
 
 	// gray to color channel
 
@@ -125,7 +116,6 @@ cv::Mat GetHistStretch( const Mat &img )
 	{
 		// vCout[i] = Lout * (vCin[i] / L_in) ^ gamma
 		divide(vCin[i], L_in, tmp);			//  vCin[i] / L_in
-		pow(tmp, gamma, tmp);				//  (vCin[i] / L_in) ^ gamma
 		multiply(L_out, tmp, vCout[i]);		//  Lout * (vCin[i] / L_in) ^ gamma
 	}
 
@@ -137,9 +127,15 @@ cv::Mat GetHistStretch( const Mat &img )
 
 cv::Mat GetGammaChangedImg( const Mat &img )
 {
-	Mat src = img;
+	Mat src;
+	img.copyTo(src);
 	
 	Mat dst;
+
+	double input_range[2] = {0, 1};
+	double output_range[2] = {0, 1};
+
+	Imadjust(src, dst, input_range, output_range, gamma);
 	
 	src.convertTo(src, CV_32FC3, 1.0 / 255.0);
 	
@@ -292,7 +288,7 @@ cv::Mat GetAchromaticImg( const Mat &img )
 	return dst;
 }
 
-void UpdateLut( Mat &lut, const int low, const int high )
+void UpdateLut( Mat &lut, const int low, const int high, const int min, const int max )
 {
 	if(low == high)
 	{
@@ -306,13 +302,16 @@ void UpdateLut( Mat &lut, const int low, const int high )
 	for(int i = high; i < 256; i++)
 		lut.at<uchar>(i) = 255;
 
-	// low ~ high-1 사이의 개수 //
-	int amount = (high - 1) - low;
+	// low ~ high 사이의 개수 //
+	int amount = high - low;
+
+	// Output Scale을 Input Scale 크기로 나눔. 
+	int step = (max - min) / amount;
 
 	for(int i = low; (i >= low) && (i < high); i++)
 	{
 		// i == low ~ high-1  =>   i - low ==  0 ~ amount// 
-		lut.at<uchar>(i) = (255 / amount) * (i - low);
+		lut.at<uchar>(i) = step * (i - low);
 	}
 }
 
@@ -325,27 +324,21 @@ cv::Mat Imadjust( const Mat &src, Mat &dst, const double input_range[], const do
 		)
 	{
 		cout << "invalid range" << endl;
+		exit(0);
 	}
 
-	Mat lut(1, 256, CV_32FC1);
-
-	for(int i = 0; i < 256; i++)
-
+	Mat lut(1, 256, CV_8UC1);
+	
+	UpdateLut(lut, (int)(255*input_range[0]), (int)(255*input_range[1]), (int)(255*output_range[0]), (int)(255*output_range[1]));
 			
-	LUT(src, histSretchLut, dst);
+	LUT(src, lut, dst);
 
-	// intensity transform
-/*
-	for( y = 0; y < img_size.height; y++)
-	{
-		for (x = 0; x < img_size.width; x++)
-		{
-			val = ((uchar*)(img.data + src->widthStep*y))[x]; 
-			val = pow((val - input_range[0])/err_in, gamma) * err_out + output_range[0];
-			if(val>255) val=255; if(val<0) val=0; // Make sure src is in the range [low,high]
-			((uchar*)(dst->imageData + dst->widthStep*y))[x] = (uchar) val;
-	}
-*/
+	dst.convertTo(dst, CV_32FC3, 1.0 / 255.0);
+
+	pow(dst, gamma, dst);
+
+	dst.convertTo(dst, CV_8UC3, 255);
+
 	return dst;
 }
 

@@ -14,13 +14,11 @@
 
 extern VideoCapture * global_cap;
 
-extern int stretchMin;
-extern int stretchMax;
+extern double stretchMin;
+extern double stretchMax;
 extern double gamma;
 extern int sigma;
 extern int margin;
-
-extern Mat histSretchLut;
 
 Point mouse_click_point;
 
@@ -52,16 +50,12 @@ void mouse_callback(int event, int x, int y, int, void * userdata /* = 0 */)
 
 void onTrackbarStretchMin( int pos, void * userdata /*= 0*/ )
 {
-	UpdateLut(histSretchLut, pos, stretchMax);
-
-	stretchMin = pos;
+	stretchMin = pos / 10.0;
 }
 
 void onTrackbarStretchMax( int pos, void * userdata /*= 0*/ )
 {
-	UpdateLut(histSretchLut, stretchMin, pos);
-
-	stretchMax = pos;
+	stretchMax = pos / 10.0;
 }
 
 void onTrackbarGamma( int pos, void * userdata /*= 0*/ )

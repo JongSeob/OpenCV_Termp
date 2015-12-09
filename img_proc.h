@@ -7,7 +7,7 @@ Mat GetHistStretch(const Mat &img);
 Mat GetGammaChangedImg(const Mat &img);
 Mat GetAchromaticImg(const Mat &img);
 
-void UpdateLut(Mat &lut, const int low, const int high);
+void UpdateLut(Mat &lut, const int low, const int high, const int min, const int max);
 
 // 이미지에서 HSV중 S성분의 표준편차를 구한다.
 int GetSaturationSigma(const Mat &img);
