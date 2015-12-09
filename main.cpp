@@ -104,8 +104,8 @@ int main(void)
 	FrameSize.width = (int)cap.get(CV_CAP_PROP_FRAME_WIDTH );
 	FrameSize.height = (int)cap.get(CV_CAP_PROP_FRAME_HEIGHT );
 
-	double fps = cap.get(CV_CAP_PROP_FPS);
-
+	double fps = 24;//cap.get(CV_CAP_PROP_FPS);
+	
 	//////////////////////////////////////////////////////////////////////////
 	// 5. 영상 저장을 위한 변수 선언.
 	//////////////////////////////////////////////////////////////////////////
@@ -194,10 +194,10 @@ int main(void)
 			default				 : break;
 			}
 
+			frame.convertTo(frame, CV_8UC3);
+
 			if(video_save_flag == true)
 			{
-				cout << "wjiwo" << endl;
-
 				wrt_origin.write(frame_origin);
 				wrt_result.write(frame);
 			}
@@ -264,7 +264,7 @@ int main(void)
 		case ' '  : video_play = (video_play == true) ? false : true; break;
 		case 's'  : if(video_save_flag == false)
 					{
-						wrt_result.open(OutputFilePath[video_proc], CODEC, fps, FrameSize);
+						cout << "반환 값은 무엇? " << wrt_result.open(OutputFilePath[video_proc], CODEC, fps, FrameSize) << endl;
 						wrt_origin.open(OutputOriginFilePath[video_proc], CODEC, fps, FrameSize);
 
 						cout << "VideoWrite start." << endl;

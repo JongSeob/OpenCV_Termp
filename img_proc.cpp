@@ -84,12 +84,12 @@ cv::Mat GetUnsharpImg( const Mat &img )
 	
 	static int ksize_arr[7] = {11, 19, 31, 41, 53, 65, 71};
 
-	float	sigma = (float)(::sigma);//12.0;			// Test for the various sigmas, eg. 3, 7, ... etc. Can you tell the effect of the magnitude of sigma? It affects on local or global aspect of emphasis.
-	float	scale = 2.0;			// Test for the various scales, eg. 3, 7, etc.  Can you tell the effect of scale? It affects on the strength of emphasis.
+	float	sigma = (float)(::sigma);
+	float	scale = 2.0;			
 	int ksize = ksize_arr[ (int)(sigma / 5) ];
 		
 	cv::Mat Blur, dst, dstPositive, dstNegative;
-	cv::GaussianBlur(src, Blur, cv::Size(ksize, ksize), sigma);		// kernel size = ksize
+	cv::GaussianBlur(src, Blur, cv::Size(ksize, ksize), sigma);
 	
 	src.convertTo(src,CV_16S);
 	Blur.convertTo(Blur, CV_16S);
@@ -156,12 +156,6 @@ cv::Mat GetGammaChangedImg( const Mat &img )
 
 	Imadjust(src, dst, input_range, output_range, gamma);
 	
-	src.convertTo(src, CV_32FC3, 1.0 / 255.0);
-	
-	cv::pow(src, gamma, dst);
-	
-	dst.convertTo(dst, CV_8UC3, 255);
-
 	return dst;
 }
 
@@ -281,7 +275,7 @@ cv::Mat GetAchromaticImg( const Mat &img )
 		{
 			for(int width = 0; width < img.size().width; width++)
 			{
-				// 현재 픽셀의 Hue 값이 clicked_hue 와 10이상 차이가 나지 않는다면
+				// 현재 픽셀의 Hue, Saturation 값이 clicked_hue와 유사하면 그 픽셀의 채도를
 				// 원래 채도로 되돌린다.
 				if( (vHSV_Origin[0].at<uchar>(height, width) >= max(clicked_hue - margin, 0) )			   &&
 					(vHSV_Origin[0].at<uchar>(height, width) <  min(clicked_hue + margin, 255) )		   &&
@@ -346,7 +340,8 @@ cv::Mat Imadjust( const Mat &src, Mat &dst, const double input_range[], const do
 
 	Mat lut(1, 256, CV_8UC1);
 	
-	UpdateLut(lut, (int)(255*input_range[0]), (int)(255*input_range[1]), (int)(255*output_range[0]), (int)(255*output_range[1]));
+	UpdateLut(lut, (int)(255*input_range[0]), (int)(255*input_range[1]), 
+		           (int)(255*output_range[0]), (int)(255*output_range[1]));
 			
 	LUT(src, lut, dst);
 
