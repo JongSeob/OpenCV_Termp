@@ -1,6 +1,11 @@
 #include "common.h"
 #include "img_proc.h"
 #include "func.h"
+#include <Windows.h>
+
+#define GPLOT_PATH									L"C:\\Program Files\\gnuplot\\bin\\wgnuplot.exe"
+#define GPLOT_DRAW_HISTOGRAM_SCRIPT_FILE_PATH		L"C:\\Users\\YJS\\Desktop\\QuitHistScript.txt"
+#define GPLOT_QUIT_GPLOT_SCRIPT_FILE_PATH			L"C:\\Users\\YJS\\Desktop\\RunThisScript.txt"
 
 // main.cpp
 extern int stretchMin;
@@ -19,6 +24,8 @@ cv::Mat GetHistEqualOnColorImg( const Mat &img )
 	cv::Mat dst, gray, tmp;
 	cv::Mat Lin, Lout, Cin, Cout;  
 	cv::Mat vCin[3], vCout[3];     // vectorCin/out
+
+	bool isGnuPlotOn = false
 
 	// Convert to gray and Apply Histogram Equalization
 	cvtColor(img, gray, CV_BGR2GRAY);
@@ -45,6 +52,19 @@ cv::Mat GetHistEqualOnColorImg( const Mat &img )
 	cv::merge(vCout, 3, dst);			// Merge 3 planes to a Mat.
 	dst.convertTo(dst,CV_8UC3);
 
+	if(isGnuPlotOn == true)
+	{
+		ShellExecute(NULL, L"open", GPLOT_PATH, \
+			GPLOT_QUIT_GPLOT_SCRIPT_FILE_PATH, NULL, SW_SHOWNORMAL);
+	}
+	else
+	{
+		isGnuPlotOn = true;
+	}
+
+	ShellExecute(NULL, L"open", GPLOT_PATH, \
+		GPLOT_DRAW_HISTOGRAM_SCRIPT_FILE_PATH, NULL, SW_SHOWNORMAL);
+	
 	return dst;
 }
 
@@ -276,10 +296,10 @@ cv::Mat GetAchromaticImg( const Mat &img )
 			{
 				// 현재 픽셀의 Hue 값이 clicked_hue 와 10이상 차이가 나지 않는다면
 				// 원래 채도로 되돌린다.
-				if( (vHSV_Origin[0].at<uchar>(height, width) >= std::max(clicked_hue - 5, 0) )			   &&
-					(vHSV_Origin[0].at<uchar>(height, width) <  std::min(clicked_hue + 5, 255) )		   &&
-					(vHSV_Origin[1].at<uchar>(height, width) >= std::max(clicked_saturation - sigma - 30, 0) )  &&
-					(vHSV_Origin[1].at<uchar>(height, width) <  std::min(clicked_saturation + sigma + 30, 255) )
+				if( (vHSV_Origin[0].at<uchar>(height, width) >= max(clicked_hue - 5, 0) )			   &&
+					(vHSV_Origin[0].at<uchar>(height, width) <  min(clicked_hue + 5, 255) )		   &&
+					(vHSV_Origin[1].at<uchar>(height, width) >= max(clicked_saturation - sigma - 30, 0) )  &&
+					(vHSV_Origin[1].at<uchar>(height, width) <  min(clicked_saturation + sigma + 30, 255) )
 					)
 				{					
 					vHSV_Ach[1].at<uchar>(height,width) = vHSV_Origin[1].at<uchar>(height,width);
